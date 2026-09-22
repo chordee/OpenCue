@@ -1,0 +1,22 @@
+# 本機 sandbox 測試用的覆寫。不進上游，僅供 notes/sandbox 的實驗使用。
+#
+# 修正 1：官方 compose 設 OPENRQD__MACHINE__USE_IP_AS_HOSTNAME=true，導致 RQD 向
+#   Cuebot 回報自己的 IPv6 位址，但 openrqd 的 gRPC server 只聽 IPv4，Cuebot 依該
+#   位址回連 8444 時 Connection refused，frame 永遠卡在 RUNNING。
+#   改為 false，讓 RQD 回報容器 hostname，由 Docker 內建 DNS 解析。
+#
+# 修正 2：Rust RQD 收到帶 uid 的 RunFrame 時會無條件嘗試建立同名使用者
+#   （rust/crates/rqd/src/frame/manager.rs），而投 job 者 chordee 的 uid 1000
+#   撞到容器內既有的 rqd 使用者 → useradd 失敗 → frame 被 abort（exit 299）。
+#   RQD 是先用「名稱」查，查到就直接沿用其 uid，所以在啟動前先用一個空的 uid
+#   把該使用者建好即可繞過。
+services:
+  rqd:
+    environment:
+      - OPENRQD__GRPC__CUEBOT_ENDPOINTS=cuebot:8443
+      - OPENRQD__MACHINE__USE_IP_AS_HOSTNAME=false
+    hostname: rqd
+    entrypoint:
+      - /bin/sh
+      - -c
+      - 'id -u chordee >/dev/null 2>&1 || useradd --uid 2000 --gid 1000 -M chordee; exec /app/openrqd'
