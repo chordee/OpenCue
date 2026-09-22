@@ -1,0 +1,99 @@
+# OpenCue — Portainer stack（正式環境型態）
+#
+# 與 repo 根目錄的 docker-compose.yml 的差別：
+#   1. 完全不用 build:，只用 image: —— Portainer 部署 stack 時沒有 build context
+#   2. 不含 rqd —— 宿主不參與算圖，render node 是外部的 Windows 機器
+#   3. PostgreSQL 不對外 publish —— 宿主上還有其他服務，避免 port 衝突與曝險
+#   4. 所有可變參數走環境變數，由 Portainer 的 stack 環境變數提供
+#   5. 明確命名 network，避免與宿主其他 stack 混淆
+#   6. 加上資源上限，避免吃掉其他服務的資源
+#
+# 需要的環境變數見同目錄的 env.example。
+
+services:
+  db:
+    image: postgres:15.1
+    container_name: opencue-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - opencue
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  flyway:
+    image: ${OPENCUE_FLYWAY_IMAGE}
+    container_name: opencue-flyway
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      PGHOST: db
+      PGPORT: 5432
+    command: /opt/scripts/migrate.sh
+    networks:
+      - opencue
+    restart: "no"
+
+  cuebot:
+    image: ${OPENCUE_CUEBOT_IMAGE}
+    container_name: opencue-cuebot
+    depends_on:
+      db:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+    ports:
+      - "${CUEBOT_GRPC_PORT}:8443"
+    environment:
+      # 注意：這是 frame log 的「根目錄」，實際建目錄與寫檔的是各台 render node 上
+      # 的 RQD，不是 Cuebot。Cuebot 本身不掛這個路徑、也不寫入。
+      # 因此這個值必須是「所有 render node 都寫得到的同一位置」。
+      # Windows render node 的情況需填 UNC 路徑或一致的磁碟機代號。
+      CUE_FRAME_LOG_DIR: ${CUE_FRAME_LOG_DIR}
+    command: >-
+      --datasource.cue-data-source.jdbc-url=jdbc:postgresql://db/${POSTGRES_DB}
+      --datasource.cue-data-source.username=${POSTGRES_USER}
+      --datasource.cue-data-source.password=${POSTGRES_PASSWORD}
+    # 讓 Cuebot 解析得到各台 render node 的主機名稱。
+    # Cuebot 會把 RQD 回報的名稱截成第一段（FQDN 的第一個 label），再用它回連 8444，
+    # 所以那個短名稱必須在「Cuebot 容器內」解析得到。
+    # 正式環境若公司 DNS 能解析節點短名稱，這段可以不需要；否則就在這裡逐一列出。
+    extra_hosts:
+      - "${RENDER_NODE_NAME}:${RENDER_NODE_ADDR}"
+    networks:
+      - opencue
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/ || [ $$? -eq 22 ]"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+networks:
+  opencue:
+    name: opencue
+
+volumes:
+  db-data:
+    name: opencue-db-data
