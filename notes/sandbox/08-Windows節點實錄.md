@@ -225,3 +225,150 @@ cwd  C:\Users\chordee\AppData\Local\Temp/testing-testshot-.../0001-test_layer
 | CueNIMBY | 給使用者的系統列工具，未安裝測試 |
 | 服務化 | RQD 以 Windows 服務常駐啟動的方式未測（但坑 #7、#8 都指向這是必要的） |
 | 真實算圖軟體 | 本次 frame 只跑 Python 腳本，未測 Blender/Maya/Nuke |
+
+---
+
+# 續篇：乾淨環境啟動與 winps
+
+## 以包裝腳本啟動（解決坑 #7、#8）
+
+建立 `C:\opencue\rqd-start.bat`（範本在 `notes/sandbox/stack/rqd-start.bat`）：
+
+```bat
+@echo off
+cd /d C:\opencue
+set RQD_CONFIG_FILE=C:\opencue\rqd.conf
+"C:\Users\chordee\opencue-win-venv\Scripts\rqd.exe" >> C:\opencue\rqd-service.log 2>&1
+```
+
+重點：固定工作目錄、不從開發者 shell 繼承環境。
+
+本機實測 **持久 PATH 是乾淨的**（不含 `Git\usr\bin`），所以只要不從 Git Bash 啟動，
+坑 #8 的 PATH 污染就不會發生。
+
+## log 路徑的正確修法
+
+先前是靠「RQD 的工作目錄在哪個磁碟機」決定 log 落點 —— 那是碰運氣。
+
+**正確做法**：既然 render node 全是 Windows，直接把 Cuebot 的
+`CUE_FRAME_LOG_DIR` 設成 **Windows 路徑**。Cuebot 只是把這個字串傳給 RQD、
+自己不使用，所以填 render node 平台的格式才對。
+
+```
+CUE_FRAME_LOG_DIR=C:/opencue/logs
+```
+
+（已更新到 `notes/sandbox/stack/env.example`，並透過 Portainer API 套用到 stack。）
+
+驗證：
+
+```
+C:\opencue\logs\testing\testshot\logs\<job>--<id>\<job>.0001-test_layer.rqlog  ← 有
+D:\tmp 底下五分鐘內的新 rqlog                                                  ← 0 個
+```
+
+多台節點時這個值要換成 UNC 路徑（例如 `//fileserver/opencue/logs`）。
+
+## winps：Windows 的記憶體回報
+
+### 沒有它會怎樣
+
+`rqd/rqd/rqmachine.py:317`：
+
+```python
+def rssUpdate(self, frames):
+    if platform.system() == 'Windows' and winpsIsAvailable:
+        self.rssUpdateWindows(frames)
+        return
+    if platform.system() != 'Linux':
+        return          # ← Windows 且沒有 winps，直接放棄
+```
+
+沒有 `winps`，Windows 節點的 frame **完全不回報記憶體用量**，
+`int_mem_max_used` 恆為 0。
+
+**影響**：OpenCue 依記憶體判斷的機制（超用時 kill / retry、記憶體統計）
+在 Windows 節點上形同失效。
+
+### 它不在安裝流程裡
+
+`pip install ./rqd` 不會裝 `winps`。它是 `rqd/winps/` 底下的 C++ 擴充，要自己編：
+
+```bash
+cd rqd/winps
+<venv>/Scripts/python.exe -m pip install .
+```
+
+需要 **MSVC 編譯器**（本機有，編譯順利通過）。
+
+`rqd/winps/setup.py` 用的是 `from distutils.core import setup`。
+`distutils` 已於 Python 3.12 從標準庫移除，但本機 3.14 仍可 import ——
+來源是 setuptools 的相容層：
+
+```
+C:\...\Python\pythoncore-3.14-64\Lib\site-packages\setuptools\_distutils\__init__.py
+```
+
+本次實際編譯用的是 **Python 3.11.9**，順利成功。3.12 以上未實測。
+
+### 驗證有效
+
+裝好 winps 後，跑一個配置 300 MB、持續 35 秒的 frame：
+
+```
+    str_name     | str_state | int_mem_max_used | int_exit_status
+-----------------+-----------+------------------+-----------------
+ 0001-test_layer | SUCCEEDED |           333548 |               0
+```
+
+333548 KB ≈ 325 MB，與預期相符。**winps 生效。**
+
+### 注意：短 frame 不會被採樣
+
+`rqconstants.py:55` → `RSS_UPDATE_INTERVAL = 10`（秒）。
+
+先前的測試 frame 只跑 3~4 秒，在兩次採樣之間就結束了，所以 `maxrss` 是 0。
+**那不是故障**。判斷 winps 有沒有生效，要用跑超過 10 秒的 frame 測。
+
+## 已確認：Windows 上 frame 的 cwd 沒有生效
+
+先前列為「待確認」，現在有兩組對照數據可以下結論。
+
+frame log 的 JobSpec 宣告的 cwd 是每個 frame 的獨立暫存目錄：
+
+```
+cwd  C:\Users\chordee\AppData\Local\Temp/<job>/<frame>
+```
+
+但 frame 內 `os.getcwd()` 實際印出的都是 **RQD 行程自己的工作目錄**：
+
+| RQD 的工作目錄 | frame 實際的 cwd |
+|---|---|
+| `D:\dev\OpenCue`（從 Git Bash 啟動） | `D:\dev\OpenCue` |
+| `C:\opencue`（從包裝腳本啟動） | `C:\opencue` |
+
+完全跟隨 RQD，與宣告值無關。
+
+**影響**：依賴相對路徑的算圖工作會在錯誤的目錄尋找檔案；
+多個 frame 也會共用同一個工作目錄，可能互相覆寫暫存檔。
+
+**實務上的迴避方式**：算圖指令一律使用絕對路徑。
+
+## 未完成：開機自動啟動
+
+目標是讓 RQD 在使用者登入時自動啟動。兩條路都沒走完：
+
+| 方式 | 結果 |
+|---|---|
+| 排程工作（`schtasks /create /sc onlogon`） | **Access is denied** —— 本機建立排程工作需要管理員權限 |
+| 使用者啟動資料夾放 `.vbs` | 被本次工作階段的安全機制擋下（歸類為未授權的開機 persistence），未繞過 |
+
+範本檔已備妥，只差實際安裝：
+
+- `notes/sandbox/stack/rqd-start.bat` —— 包裝腳本
+- `notes/sandbox/stack/rqd-start-hidden.vbs` —— 隱藏視窗啟動
+
+**正式環境的建議**：artist 工作站不要用 Windows 服務。
+真正的系統服務跑在 session 0，**看不到使用者的鍵鼠輸入**，NIMBY 會失效。
+應該用「登入時觸發」的排程工作（由 IT 透過 GPO 派送），讓 RQD 跑在使用者 session。
+專職的無人值守 render node 才適合用服務。
