@@ -143,7 +143,7 @@ logDestination  /tmp/rqd/logs/testing/testshot/logs/<job>--<id>\<job>.<frame>.rq
 前半是 Linux 斜線、後半是 Windows 反斜線。
 
 **正式環境必須**：把 `CUE_FRAME_LOG_DIR` 設成所有節點都寫得到的共享儲存路徑
-（**必須是 UNC 路徑**，磁碟機代號繫結於登入工作階段而不可靠，見 `11` 第 2 點），而不是留著預設的 `/tmp/rqd/logs`。
+（**frame log 要用 UNC 正斜線**，因為 CueWeb 在 Linux 容器裡也要讀它；其他路徑可用磁碟機代號，見 `11` 第 2 點），而不是留著預設的 `/tmp/rqd/logs`。
 
 ### 坑 #8：PATH 污染（自己造成的，但值得記）
 
