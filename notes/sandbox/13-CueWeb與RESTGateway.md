@@ -288,3 +288,146 @@ volumes:
 **注意**：預覽路由只服務網頁可顯示的格式（png / jpeg / webp / bmp / avif，
 刻意排除 svg 以免同源執行腳本）。**EXR 不在其中** ——
 Houdini/Karma 輸出 EXR 的話，網頁預覽需要另外產生代理圖（proxy / thumbnail）。
+
+---
+
+## EXR 預覽：為什麼看不到，以及三種解法
+
+### 先釐清：這不是 CueWeb 的限制
+
+**所有瀏覽器都沒有 EXR 解碼器。** `<img src="....exr">` 在任何網頁上都顯示不出來，
+不只是 CueWeb。
+
+CueWeb 的預覽路由（`cueweb/app/api/frame/preview/route.ts:35-45`）
+明確列出它服務的格式：
+
+```javascript
+const MIME: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  bmp: "image/bmp",
+  avif: "image/avif",
+  // SVG 刻意排除：同源提供 SVG 等於允許執行腳本
+};
+```
+
+遇到不在清單內的副檔名會回 **HTTP 415**，訊息是
+`Preview not supported in browser for this format`（`route.ts:125`），
+前端據此顯示「無法預覽」的替代畫面。
+
+**這是刻意設計，不是 bug。**
+
+### 解法一：交給本機看圖程式（建議優先採用，不需改任何程式碼）
+
+CueWeb 本來就內建這條路。Frame 選單的「Preview All」會使用兩個 build arg：
+
+| 變數 | 用途 | 預設值 |
+|---|---|---|
+| `NEXT_PUBLIC_PREVIEW_COMMAND` | 對話框中**顯示並可複製**的指令 | `rv {paths}` |
+| `NEXT_PUBLIC_PREVIEW_URL` | Launch 按鈕呼叫的 **URL scheme** | 空（不顯示按鈕） |
+
+可用的佔位符：`{paths}` `{job}` `{layer}` `{frame}`。
+
+實作位置：`cueweb/components/ui/frame-extra-dialogs.tsx:59-60`。
+
+**為什麼建議優先做這個**：
+
+- 完全不用改程式碼，只是 build arg
+- artist 用的是 **RV / xSTUDIO 這類專業看圖程式**，功能遠勝網頁預覽
+  （曝光調整、channel 切換、比對、色彩管理）
+- 沒有傳輸大檔的問題
+
+設定方式（build 時）：
+
+```bash
+docker compose build cueweb \
+  --build-arg NEXT_PUBLIC_PREVIEW_COMMAND='rv {paths}' \
+  --build-arg NEXT_PUBLIC_PREVIEW_URL='openrv://{paths}'
+```
+
+若要用 URL scheme 的 Launch 按鈕，需要在每台 artist 機器上
+**註冊該 scheme 的處理程式**（Windows 的登錄檔設定）。
+若嫌麻煩，只留 `PREVIEW_COMMAND` 讓使用者複製貼上也可行。
+
+**注意這兩個是 build arg，改環境變數無效**（見本文件前段關於
+`NEXT_PUBLIC_*` 的說明）。
+
+### 解法二：伺服器端轉檔（要改 CueWeb，但改動很小）
+
+在預覽路由裡把 EXR 解碼成 PNG 再回傳。
+**前端完全不用動** —— 它只是一個 `<img src="/api/frame/preview?path=...">`。
+
+#### 可行性實測
+
+CueWeb 的 base image 是 **Alpine Linux**，實測裡面沒有任何轉檔工具：
+
+```
+無 oiiotool / 無 ffmpeg / 無 convert / 無 magick
+```
+
+`package.json` 也沒有 `sharp`、`three` 等影像套件。
+
+但 Alpine 的 `ffmpeg` 套件可以解 EXR，實測用本次 husk 算出來的檔案：
+
+```
+輸入: husk.0001.exr  916 KB
+      Stream: exr, gbrapf16le(linear), 1280x720
+
+直接轉             plain.png   2,061,637 bytes
+-apply_trc sRGB    trc.png     1,921,973 bytes
+-vf eq=gamma=2.2   gamma.png     508,788 bytes
+縮圖 320 寬        thumb.png     120,465 bytes
+```
+
+#### 重要細節：EXR 是線性 HDR，直接轉會太暗
+
+必須做色彩轉換。而 **`-apply_trc` 是解碼器選項，一定要放在 `-i` 之前**：
+
+```bash
+# 正確
+ffmpeg -apply_trc iec61966_2_1 -i in.exr -vf scale=320:-1 out.png
+
+# 錯誤（會失敗：Error while filtering）
+ffmpeg -i in.exr -vf scale=320:-1 -apply_trc iec61966_2_1 out.png
+```
+
+#### 要改的地方
+
+1. `cueweb/Dockerfile` 加 `RUN apk add --no-cache ffmpeg`
+2. `route.ts` 的 `MIME` 表加入 `exr`
+3. 遇到 `exr` 時先轉成暫存 PNG，回傳 `image/png`
+
+建議**只產小縮圖**（320 寬約 120 KB），不要回傳全尺寸 ——
+預覽面板本來就只是確認「這格算對了沒」。
+
+正式做的時候要考慮：轉檔的 CPU 成本、是否加快取、多層（multi-part）EXR
+與 AOV 怎麼選。OpenImageIO 的 `oiiotool` 在這些方面比 ffmpeg 正確，
+但不在 Alpine 主套件庫內，要自行編譯或換 base image。
+
+### 解法三：瀏覽器端解碼（功能最好，工程量最大）
+
+把原始 EXR 位元組送到瀏覽器，用 JS/WASM 解碼器
+（例如 three.js 的 `EXRLoader`）畫到 `<canvas>`。
+
+| 優點 | 缺點 |
+|---|---|
+| **保留 HDR 資料**，可做曝光／gamma 即時調整 | 要改前端，工程量大 |
+| 可切換 channel（R/G/B/A/Z、各 AOV） | 增加 bundle 大小 |
+| 伺服器沒有轉檔負擔 | **大檔整個傳到瀏覽器**，4K 多 AOV 可能上百 MB |
+
+對 VFX 來說這是功能最完整的做法，但考量到 artist 手邊本來就有
+RV / xSTUDIO，投資報酬率不高。
+
+### 建議的優先順序
+
+| 順位 | 做法 | 工程量 |
+|---|---|---|
+| 1 | 設定 `NEXT_PUBLIC_PREVIEW_COMMAND` / `_URL` 指向本機看圖程式 | 只是 build arg |
+| 2 | 伺服器端轉小縮圖（若真的需要在網頁上快速確認） | Dockerfile 一行 + route 一小段 |
+| 3 | 瀏覽器端 EXR 解碼 | 前端改動大，通常不划算 |
+
+**先做第 1 項。** 多數情況它就夠了，而且今天就能做 —— 反正 CueWeb
+本來就必須自行 build（見本文件開頭）。
