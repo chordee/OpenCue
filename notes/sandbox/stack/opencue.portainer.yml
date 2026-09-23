@@ -70,7 +70,19 @@ services:
       --datasource.cue-data-source.jdbc-url=jdbc:postgresql://db/${POSTGRES_DB}
       --datasource.cue-data-source.username=${POSTGRES_USER}
       --datasource.cue-data-source.password=${POSTGRES_PASSWORD}
-    # 讓 Cuebot 解析得到各台 render node 的主機名稱。
+    # 【規模化的正解】讓容器使用公司 DNS 與網域搜尋後綴，
+    # 如此 Cuebot 解析短名稱 RENDER01 時會自動查 RENDER01.studio.local，
+    # 完全不需要維護 extra_hosts。節點數量一多，extra_hosts 就不可行。
+    #
+    # 正式環境請取消以下兩段的註解並填入實際值，同時移除下方的 extra_hosts。
+    # 本機測試環境沒有公司 DNS 可驗證，因此預設維持註解狀態 —— 未經實測的設定
+    # 不放進預設值。
+    #
+    # dns:
+    #   - 192.168.1.1          # 公司內部 DNS 伺服器
+    # dns_search:
+    #   - studio.local         # 網域名稱後綴
+    # 沒有可用 DNS 時的退路：逐台硬寫。僅適用於少量節點的測試。
     # Cuebot 會把 RQD 回報的名稱截成第一段（FQDN 的第一個 label），再用它回連 8444，
     # 所以那個短名稱必須在「Cuebot 容器內」解析得到。
     # 正式環境若公司 DNS 能解析節點短名稱，這段可以不需要；否則就在這裡逐一列出。

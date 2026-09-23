@@ -25,7 +25,9 @@
 | `07-Portainer部署實錄.md` | 用 Portainer API 部署與驗證的完整流程 |
 | `08-Windows節點實錄.md` | Windows 原生 RQD 的安裝、設定與五個坑 |
 | `09-NIMBY與混合機隊.md` | 工作站與專職算圖機的分工、CueNIMBY 時段排程實測 |
-| `stack/` | Portainer stack 檔、環境變數範本、Windows RQD 設定範本 |
+| `10-Windows用戶端工具.md` | CueGUI / CueSubmit 在 Windows 的安裝與設定路徑 |
+| `11-正式部署風險與待辦.md` | 規模化後才會遇到的問題：DNS、UNC、防火牆、初始化、EDR、備份 |
+| `stack/` | 可直接取用的設定檔：Portainer stack、環境變數、RQD、CueNIMBY、用戶端 |
 
 ## 名詞對照
 

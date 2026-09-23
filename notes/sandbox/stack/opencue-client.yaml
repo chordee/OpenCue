@@ -1,0 +1,22 @@
+# OpenCue 用戶端設定範本（pycue / cuegui / cuesubmit / cueadmin 共用）
+#
+# 放置位置：
+#   Windows : %APPDATA%\opencue\opencue.yaml
+#   Linux   : ~/.config/opencue/opencue.yaml
+#   或用環境變數 OPENCUE_CONFIG_FILE 指向任意路徑
+#
+# 注意：CueNIMBY 不讀這個檔，它有自己的 cuenimby.json，
+#       且在 Windows 上位於 %USERPROFILE%\.config\opencue\（非 %APPDATA%）。
+
+cuebot.facility_default: local
+
+cuebot.facility:
+    local:
+        # 改成正式環境那台 Linux 主機的名稱或 IP
+        - linux-server.studio.local:8443
+
+# 逾時與重試（沿用 default.yaml 的值，通常不需要改）
+cuebot.timeout: 10000
+cuebot.exception_retries: 3
+
+logger.level: WARNING
