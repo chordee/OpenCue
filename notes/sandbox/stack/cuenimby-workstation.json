@@ -1,0 +1,18 @@
+{
+  "cuebot_host": "localhost",
+  "cuebot_port": 8443,
+  "hostname": "LAPTOP-ULJICLO8",
+  "poll_interval": 5,
+  "show_notifications": true,
+  "notification_duration": 5,
+  "cuegui_command": ["cuegui"],
+  "cuegui_label": "Launch CueGUI",
+  "scheduler_enabled": true,
+  "schedule": {
+    "monday":    { "start": "09:00", "end": "18:00", "state": "disabled" },
+    "tuesday":   { "start": "09:00", "end": "18:00", "state": "disabled" },
+    "wednesday": { "start": "09:00", "end": "18:00", "state": "disabled" },
+    "thursday":  { "start": "09:00", "end": "18:00", "state": "disabled" },
+    "friday":    { "start": "09:00", "end": "18:00", "state": "disabled" }
+  }
+}

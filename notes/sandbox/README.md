@@ -24,6 +24,7 @@
 | `06-資源用量實測.md` | 實測的 CPU/記憶體用量，用於判斷主機規格 |
 | `07-Portainer部署實錄.md` | 用 Portainer API 部署與驗證的完整流程 |
 | `08-Windows節點實錄.md` | Windows 原生 RQD 的安裝、設定與五個坑 |
+| `09-NIMBY與混合機隊.md` | 工作站與專職算圖機的分工、CueNIMBY 時段排程實測 |
 | `stack/` | Portainer stack 檔、環境變數範本、Windows RQD 設定範本 |
 
 ## 名詞對照
