@@ -79,7 +79,7 @@ Portainer 沒有 build context，compose 裡的 `build:` 用不了。
 |---|---|
 | Docker 開機自啟（systemd） | 宿主重開機後 stack 要自己回來 |
 | 防火牆規則 | 8443 對 Windows 節點開放（見 `11` 第 3 點） |
-| 掛載共享儲存 | CueWeb 要讀 frame log ⚠ |
+| 掛載共享儲存 | CueWeb 要讀 frame log ⚠（可用 CIFS volume 迴避 mount，但宿主仍須具備 cifs-utils） |
 | TLS 憑證安裝 | registry、反向代理 |
 | OS 更新與疑難排解 | |
 
@@ -142,8 +142,56 @@ volumes:
 
 這樣不需要在宿主上做 `mount`，Portainer 就能部署。
 
-**但憑證會出現在 stack 定義裡**，需要用 Portainer 的環境變數或 secret 管理，
-且 IT 可能有政策限制。**本次未實測。**
+**但這個方案有兩個前提，其中一個會讓它退回需要 SSH：**
+
+#### 前提一：宿主核心必須支援 CIFS
+
+**Docker 自己不帶 CIFS 用戶端。** `type: cifs` 最終是呼叫宿主核心的
+`cifs.ko` 與 `mount.cifs`（來自 `cifs-utils` 套件）。精簡的 Linux 發行版
+可能兩者都沒有。
+
+若缺少，建立 volume 時**不會報錯**（建立階段不實際掛載），
+要到第一次使用時才失敗。
+
+**驗證方法 —— 看錯誤訊息的類型即可分辨：**
+
+```bash
+docker volume create --driver local   --opt type=cifs   --opt device=//fileserver/share   --opt o=guest,ro cifstest
+
+docker run --rm -v cifstest:/mnt alpine ls /mnt
+docker volume rm cifstest
+```
+
+| 錯誤訊息 | 含意 | 是否需要 SSH |
+|---|---|---|
+| `permission denied` | **核心支援 CIFS**，只是憑證不對 | 否，改憑證即可 |
+| `cifs filesystem not supported` | 核心模組或 `cifs-utils` 缺失 | **是**，要裝套件 |
+
+本次在 Docker Desktop 的 VM 上實測，得到的是：
+
+```
+failed to mount local volume: mount //192.168.0.107/chordee:...
+flags: 0x1, data: guest: permission denied
+```
+
+→ **該環境的核心支援 CIFS**（掛載走到認證階段才失敗）。
+
+註：不要用容器內的 `/proc/filesystems` 判斷 —— 掛載是由**宿主上的 daemon**
+執行的，不在容器的命名空間裡。本次容器內查不到 cifs，但實際掛載是支援的。
+**唯一可靠的檢查方式就是實際嘗試掛載。**
+
+#### 前提二：憑證管理
+
+憑證會出現在 stack 定義裡，需要用 Portainer 的環境變數或 secret 管理，
+IT 可能有政策限制。
+
+#### 結論
+
+這個方案**避免了「在宿主上執行 mount」，但沒有避免「宿主要具備 CIFS 能力」**。
+若目標宿主缺少 `cifs-utils`，安裝套件仍需宿主權限 ——
+所以它只是**部分**緩解，不能作為「完全不需要 SSH」的依據。
+
+部署前請先用上面的指令在目標宿主上確認。
 
 ## 無論如何都需要 SSH 的
 
