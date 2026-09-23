@@ -89,6 +89,29 @@ CueNIMBY 用的是 Linux 慣例的 `~/.config`，**沒有做平台判斷**
 （`cuenimby/config.py:59`）。所以在 Windows 上兩個元件的設定檔分散在兩個地方，
 部署時容易漏掉其中一個。這也正是坑 #10（`mkdir` 缺 `parents=True`）的來源。
 
+## DCC 軟體內建的 Submitter
+
+實務上 artist 多半不是開獨立的 CueSubmit，而是在 Maya / Nuke 裡直接從選單送出。
+repo 裡有現成的外掛，但位置與涵蓋範圍要先講清楚：
+
+**路徑是 `cuesubmit/plugins/`，不是頂層的 `plugins/`**（頂層沒有這個目錄）。
+
+```
+cuesubmit/plugins/maya/
+    CueMayaSubmit.py
+    userSetup.py            <- Maya 啟動時自動載入
+    opencue_logo_small.png
+cuesubmit/plugins/nuke/
+    CueNukeSubmit.py
+    CueNukeSubmitLauncher.py
+    menu.py                 <- Nuke 選單註冊
+```
+
+**只有 Maya 與 Nuke，沒有 Blender 外掛。** 若團隊用 Blender，
+需要自行以 pyoutline 包裝，或走獨立的 CueSubmit / 命令列投 job。
+
+這兩個外掛本次都未安裝測試。進到 artist 實機測試階段時應納入評估。
+
 ## 待驗證
 
 | 項目 | 說明 |

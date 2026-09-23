@@ -246,3 +246,60 @@ return "available" if desired_state == "disabled" else "disabled"
 幸好我們的情境是「下班後才借用」，剛好可以用 `09:00-18:00 disabled` 表達。
 
 詳細根因與建議修法見 `05-可回饋上游的問題.md` 第 12 項。
+
+
+## 工作站的啟動腳本必須同時帶起 RQD 與 CueNIMBY
+
+`stack/rqd-start.bat` 一開始只啟動 `rqd.exe`，這對工作站是不完整的 ——
+沒有 CueNIMBY 就沒有時段排程，工作站會 24 小時開放。
+
+腳本已更新，用 `NODE_ROLE` 區分兩種角色：
+
+```bat
+set NODE_ROLE=workstation    REM 或 render
+
+start "OpenCue RQD" /B "%OPENCUE_VENV%\Scripts\rqd.exe" >> ... 2>&1
+
+if /I "%NODE_ROLE%"=="workstation" (
+    ping -n 21 127.0.0.1 > nul
+    start "CueNIMBY" /B "%OPENCUE_VENV%\Scripts\cuenimby.exe" >> ... 2>&1
+)
+```
+
+實作過程踩到兩個坑，都值得記。
+
+### 坑 #12：啟動順序 —— RQD 必須先就緒
+
+第一版把 CueNIMBY 放在 RQD 前面，結果：
+
+```
+failed to lock host: LAPTOP-ULJICLO8
+RqdClientException: failed to lock host
+```
+
+**原因**：「鎖定主機」不是 Cuebot 自己改個旗標就好，
+它是 **Cuebot 回呼該節點的 RQD（8444）** 來執行的。
+RQD 還沒開始聽的時候，CueNIMBY 的排程套用必定失敗。
+
+所以順序是：先起 RQD → 等它註冊完成 → 再起 CueNIMBY。
+
+腳本用 `ping -n 21 127.0.0.1` 做延遲，而不是 `timeout` ——
+`timeout` 在 stdin 被重導向時會失敗，而排程工作正是這種情況。
+
+### 坑 #13：.bat 檔必須是純 ASCII
+
+原本的腳本寫了中文註解（UTF-8）。**cmd.exe 是用 OEM 代碼頁解析 .bat**
+（這台機器是 CP950），UTF-8 的中文被當成 Big5 解讀成亂碼，破壞了語法：
+
+```
+'tlocal' is not recognized as an internal or external command,
+'workstation" (' is not recognized as an internal or external command,
+```
+
+結果是兩個行程都沒起來。加了 `setlocal` 與 `if (...)` 區塊之後特別容易炸，
+因為亂碼會破壞區塊的括號配對。
+
+**規範**：部署到 Windows 節點的 .bat 一律使用純 ASCII，
+中文說明放在筆記裡。可用 `file <檔案>` 確認輸出為 `ASCII text`。
+
+修正後實測：兩個行程都正常啟動，CueNIMBY 成功套用排程並鎖定主機，無錯誤。
