@@ -18,6 +18,18 @@ if not exist "%MAYA_BIN%\Render.exe" (
     exit /b 127
 )
 
+
+REM --- DCC license servers ---------------------------------------------------
+REM RQD does NOT inherit the interactive user's environment (see notes 12,
+REM trap #14: it passes TMP but not TEMP). Anything the renderer needs must be
+REM set here explicitly, license servers included. Uncomment and point at the
+REM studio license server before using Arnold, MtoA or batch Nuke.
+REM
+REM set ADSKFLEX_LICENSE_FILE=@license-server.studio.local
+REM set foundry_LICENSE=4101@license-server.studio.local
+REM set solidangle_LICENSE=5053@license-server.studio.local
+REM ---------------------------------------------------------------------------
+
 set SCENE=%~1
 set OUTDIR=%~2
 set RENDERER=%~3

@@ -22,6 +22,18 @@ REM Nuke needs a writable disk cache. Without NUKE_DISK_CACHE it derives a path
 REM from the environment and falls back to C:\temp\nuke, which does not exist
 REM on a render node, so every frame fails with
 REM     ERROR: Unable to create disk cache at C:/temp/nuke.
+
+REM --- DCC license servers ---------------------------------------------------
+REM RQD does NOT inherit the interactive user's environment (see notes 12,
+REM trap #14: it passes TMP but not TEMP). Anything the renderer needs must be
+REM set here explicitly, license servers included. Uncomment and point at the
+REM studio license server before using Arnold, MtoA or batch Nuke.
+REM
+REM set ADSKFLEX_LICENSE_FILE=@license-server.studio.local
+REM set foundry_LICENSE=4101@license-server.studio.local
+REM set solidangle_LICENSE=5053@license-server.studio.local
+REM ---------------------------------------------------------------------------
+
 if "%NUKE_DISK_CACHE%"=="" set NUKE_DISK_CACHE=C:\opencue\tmp\nuke
 if not exist "%NUKE_DISK_CACHE%" mkdir "%NUKE_DISK_CACHE%"
 

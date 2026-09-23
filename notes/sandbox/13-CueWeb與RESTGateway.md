@@ -215,3 +215,76 @@ Windows 路徑。**但 Portainer 是直接對 daemon 下指令，沒有這層轉
 
 **正式的 Linux 宿主沒有這一層**，直接填實際掛載點即可。
 這純粹是 Docker Desktop 的測試環境限制，記下來避免日後誤判。
+
+---
+
+## 修正：兩個白名單變數負責不同端點
+
+初版把 `CUEWEB_PREVIEW_ROOTS` 指向 log 目錄，是錯的。查證原始碼後釐清：
+
+| 變數 | 使用的路由 | 未設定時的行為 | 用途 |
+|---|---|---|---|
+| `CUEWEB_LOG_ROOTS` | `api/getlog/route.ts:50`、`api/stuck-frames/lastline/route.ts:29` | **不限制** | frame 的文字 log（`.rqlog`）讀取與下載 |
+| `CUEWEB_PREVIEW_ROOTS` | `api/frame/preview/route.ts:48` | **一律拒絕（403）** | 算圖成果的圖片縮圖預覽 |
+
+`preview/route.ts:92-96` 的註解說明了為何 fail-closed：
+
+```javascript
+// Fail closed: serving an arbitrary absolute path (even an auth'd one) would
+// expose any web-renderable image on the server filesystem. Require an
+// explicit CUEWEB_PREVIEW_ROOTS allow-list; without it the route serves nothing.
+```
+
+而 `getlog/route.ts:44-47` 相反：
+
+```javascript
+// Optional per-site allow-list ... When set, only files under one of these
+// roots are served; when unset, reads aren't restricted to a root (job log
+// paths are site-specific).
+```
+
+### 安全影響：不設 CUEWEB_LOG_ROOTS 等於開放任意檔案讀取
+
+因為 log 的白名單預設是**開放**的，未設定時任何能開啟 CueWeb 的人
+都能透過 `/api/getlog?path=...` 讀取容器內的任意絕對路徑。
+
+設定後實測：
+
+```
+/api/getlog?path=/mnt/logs/.../xxx.rqlog   -> HTTP 200
+/api/getlog?path=/etc/passwd               -> HTTP 403
+```
+
+**正式環境務必設定 `CUEWEB_LOG_ROOTS`。**
+
+### 為什麼官方 sandbox 把 PREVIEW_ROOTS 指向 log 目錄
+
+不是筆誤 —— sandbox 的 Blender demo 刻意把算好的圖寫進 `/tmp/rqd/logs`
+（`sandbox/README.md` 有說明，因為容器版 RQD 沒有 Blender，改由宿主算圖
+並寫進 CueWeb 唯讀掛載的那個目錄）。
+
+**正式環境算圖輸出是獨立的共享**，兩者應分開掛載。
+
+### 修正後的設定
+
+```yaml
+environment:
+  CUEWEB_LOG_ROOTS: ${CUEWEB_LOG_ROOTS}          # -> /mnt/logs
+  CUEWEB_PREVIEW_ROOTS: ${CUEWEB_PREVIEW_ROOTS}  # -> /mnt/render
+volumes:
+  - ${FRAME_LOG_MOUNT_SOURCE}:${FRAME_LOG_MOUNT_TARGET}:ro
+  - ${RENDER_OUT_MOUNT_SOURCE}:${RENDER_OUT_MOUNT_TARGET}:ro
+```
+
+驗證（用先前 Nuke job 算出來的 PNG）：
+
+```
+/api/frame/preview?path=/mnt/render/nuke/nuke.0001.png
+-> HTTP 200  content-type: image/png  74615 bytes
+```
+
+大小與 render node 上的輸出檔完全一致。
+
+**注意**：預覽路由只服務網頁可顯示的格式（png / jpeg / webp / bmp / avif，
+刻意排除 svg 以免同源執行腳本）。**EXR 不在其中** ——
+Houdini/Karma 輸出 EXR 的話，網頁預覽需要另外產生代理圖（proxy / thumbnail）。

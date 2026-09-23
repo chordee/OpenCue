@@ -158,7 +158,21 @@ services:
       NEXTAUTH_URL: ${CUEWEB_PUBLIC_URL}
       NEXTAUTH_SECRET: ${CUEWEB_NEXTAUTH_SECRET}
       SENTRY_ENVIRONMENT: production
-      # frame log 預覽的白名單根目錄，未設定時該功能一律拒絕
+      # 兩個白名單負責不同的端點，用途不可混淆：
+      #
+      # CUEWEB_LOG_ROOTS    -> /api/getlog 與 stuck-frames/lastline
+      #                        讀取 frame 的文字 log (.rqlog)
+      #                        未設定時「不限制」，只要是容器內的絕對路徑就讀得到
+      #                        設定它是為了限縮讀取範圍，屬於安全強化
+      #
+      # CUEWEB_PREVIEW_ROOTS -> /api/frame/preview
+      #                        顯示算圖成果的圖片縮圖
+      #                        未設定時「一律拒絕」（403），屬於 fail-closed
+      #                        應指向算圖輸出目錄，不是 log 目錄
+      #
+      # 註：官方 sandbox 把 PREVIEW_ROOTS 指向 log 目錄，是因為它的 Blender
+      #     demo 刻意把圖寫進 log 目錄。正式環境算圖輸出是獨立的共享。
+      CUEWEB_LOG_ROOTS: ${CUEWEB_LOG_ROOTS}
       CUEWEB_PREVIEW_ROOTS: ${CUEWEB_PREVIEW_ROOTS}
     volumes:
       # CueWeb 要能讀到 frame log 才顯示得出來。
@@ -166,6 +180,8 @@ services:
       # render node 是 Windows 時，那會是 Windows 路徑，Linux 容器內不存在。
       # 詳見 notes/sandbox/13。
       - ${FRAME_LOG_MOUNT_SOURCE}:${FRAME_LOG_MOUNT_TARGET}:ro
+      # 算圖輸出。要在網頁上看縮圖預覽才需要，可留空不掛。
+      - ${RENDER_OUT_MOUNT_SOURCE}:${RENDER_OUT_MOUNT_TARGET}:ro
     networks:
       - opencue
     restart: unless-stopped

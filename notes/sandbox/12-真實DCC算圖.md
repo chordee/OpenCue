@@ -364,3 +364,72 @@ python submit_dcc.py houdini --frames 1-4
 python submit_dcc.py maya    --frames 1-3
 python submit_dcc.py nuke    --frames 1-3
 ```
+
+---
+
+# 補充：授權伺服器與 husk 兩階段派工
+
+## DCC 授權環境變數要寫進包裝腳本
+
+本次測試用的都是不需要浮動授權的組合：
+
+- Maya Software（`-r sw`）—— 隨 Maya 本體，不需額外授權
+- Houdini Commercial —— 本機已安裝的節點授權
+
+**切換到需要浮動授權的算圖器時（Arnold / MtoA / Nuke 批次）會踩到坑 #14
+的同一個問題**：RQD 不繼承使用者的環境，授權伺服器設定不會自動出現。
+
+因此三個包裝腳本都預留了授權區塊（預設註解）：
+
+```bat
+REM --- DCC license servers ---------------------------------------------------
+REM set ADSKFLEX_LICENSE_FILE=@license-server.studio.local
+REM set foundry_LICENSE=4101@license-server.studio.local
+REM set solidangle_LICENSE=5053@license-server.studio.local
+REM ---------------------------------------------------------------------------
+```
+
+| 變數 | 對應軟體 |
+|---|---|
+| `ADSKFLEX_LICENSE_FILE` | Autodesk（Maya、Arnold 的 Autodesk 授權形式） |
+| `foundry_LICENSE` | Foundry（Nuke） |
+| `solidangle_LICENSE` | Solid Angle（Arnold 獨立授權形式） |
+
+正式部署時取消註解並填入實際的授權伺服器。
+
+（加入授權區塊後重新驗證 Houdini 包裝腳本仍正常：frame 9 算出
+472 KB EXR，exit 0。）
+
+## Solaris / USD：husk 兩階段派工
+
+場景規模大時，Houdini 實務上常拆成兩階段：
+
+```
+階段 1（cache）：hython 或 Houdini 產生 .usd
+階段 2（render）：husk.exe -o out.exr scene.usd
+```
+
+**與目前的包裝腳本架構完全相容** —— 只要再加一個
+`C:\opencue\bin\husk-22.0.429.bat`，用同樣的方式解析本機安裝路徑，
+並以 layer tag 綁定版本即可。
+
+在 OpenCue 上可以做成兩個 layer，第二層相依於第一層完成
+（pyoutline 的 depend 機制），或拆成兩個 job。
+
+本次已單獨驗證過 husk 可用：
+
+```
+husk.exe --make-output-path -f 1 -o "C:/opencue/render/husk.$F4.exr" scene.usda
+-> exit 0, husk.0001.exr 916 KB
+```
+
+**授權特性待確認**：husk 通常被認為不佔用 Houdini 核心授權、啟動也比完整
+hython 快，這對農場的授權池有明顯好處。但本次無法觀測授權 token 的實際消耗，
+**這一點要用你們自己的授權設定實測確認**，不要直接採信。
+
+從實測可見的部分是啟動成本：
+- `hython` + Karma ROP：約 5.4–6.7 秒（含 Houdini 啟動與建場景）
+- `husk` 單獨算圖：整體 exit 0，未個別計時
+
+若採兩階段，階段 2 可以派給不需要完整 Houdini 的節點，
+`RQD_TAGS` 可另外標示（例如 `husk22`），與 `houdini22` 分開管理。
