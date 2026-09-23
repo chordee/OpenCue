@@ -721,3 +721,98 @@ Windows 那個 DEAD 是**預期內的**：`/bin/sleep` 在 Windows 上不存在�
 **這些應列為正式部署第一台 Windows 節點的驗收項目**
 （見 `18` 的部署順序）。只要找到任何一台閒置的實體 Windows 機器，
 即使不裝 DCC，也能驗證前四項最容易出事的部分。
+
+## 跨平台的 log 路徑對應（per-OS frame log root）
+
+混合作業系統的農場必須處理一件事：**`CUE_FRAME_LOG_DIR` 是設在 Cuebot 上的，
+全農場共用一個值**。Windows 路徑給 Linux 節點用會出事。
+
+### 不設定會怎樣（實測）
+
+Cuebot 設 `CUE_FRAME_LOG_DIR=C:/opencue/logs`，Linux 容器節點收到工作後：
+
+```
+/app/C:/opencue/logs/testing/testshot/logs/.../xxx.rqlog
+     ↑ 建立了一個字面上叫 "C:" 的目錄
+```
+
+因為 `C:/opencue/logs` 在 Linux 上是**相對路徑**，
+於是在行程的工作目錄 `/app` 底下建了一個名為 `C:` 的資料夾。
+**沒有任何錯誤訊息**，job 也回報成功 —— 只是 log 在誰也想不到的地方。
+
+### OpenCue 內建的解法
+
+`cuebot/src/main/java/com/imageworks/spcue/util/JobLogUtil.java:59-66`：
+
+```java
+public String getJobLogRootDir(String os) {
+    try {
+        return env.getRequiredProperty(String.format("log.frame-log-root.%s", os), String.class);
+    } catch (IllegalStateException e) {
+        return env.getRequiredProperty("log.frame-log-root.default_os", String.class);
+    }
+}
+```
+
+**依 job 的 `os` 挑選對應的根目錄**，找不到才退回 `default_os`。
+`opencue.properties:83-92` 有說明與範例。
+
+**關鍵：key 是 job 的 `str_os`，不是執行節點的 OS。**
+所以要讓它生效，**job 必須指定 `os`**（就是前一節用來控制派工的同一個參數）。
+兩者是同一套機制的兩面：指定 OS 既決定派到哪種節點，也決定 log 路徑。
+
+### 設定方式
+
+加在 Cuebot 的啟動參數：
+
+```yaml
+command: >-
+  --datasource...
+  --log.frame-log-root.Windows=${FRAME_LOG_ROOT_WINDOWS}
+  --log.frame-log-root.debian=${FRAME_LOG_ROOT_LINUX}
+```
+
+```
+FRAME_LOG_ROOT_WINDOWS=C:/opencue/logs
+FRAME_LOG_ROOT_LINUX=/tmp/rqd/logs
+```
+
+屬性名稱的 OS 部分要**對應 RQD 回報的平台名稱**
+（Python RQD 用 `platform.system()`，見 `rqconstants.py:177` 的 `SP_OS`）：
+
+| 節點 | 回報值 | 對應屬性 |
+|---|---|---|
+| Windows | `Windows` | `log.frame-log-root.Windows` |
+| Debian 容器 | `debian` | `log.frame-log-root.debian` |
+
+### 實測結果
+
+設定後重投兩個 job：
+
+| job 的 os | 執行主機 | DB 記錄的 log 路徑 | 實際檔案位置 |
+|---|---|---|---|
+| `debian` | render02 | `/tmp/rqd/logs/...` | ✅ Linux 節點的 `/tmp/rqd/logs/` |
+| `Windows` | LAPTOP-ULJICLO8 | `C:/opencue/logs/...` | ✅ Windows 的 `C:\opencue\logs\` |
+
+**兩邊各自落在正確的位置，DB 記錄的路徑也與實體檔案一致。**
+
+### 這個機制的範圍與限制
+
+| 涵蓋 | 不涵蓋 |
+|---|---|
+| **frame log 的根目錄** | 場景檔、貼圖、算圖輸出的路徑 |
+
+**job 指令裡的路徑完全不經過這個機制** —— 那是投 job 端的責任。
+若要在混合平台上共用同一份場景，仍須靠：
+
+- 投 job 時依目標平台組出對應的路徑，或
+- 使用兩邊都成立的路徑形式（UNC 正斜線，但 Linux 端仍須把共享掛在相符位置）
+
+### 對本專案的意義
+
+目標環境的算圖節點**全部是 Windows**，所以只要設
+`log.frame-log-root.Windows` 一項即可，或直接用 `CUE_FRAME_LOG_DIR`
+（`default_os`）也行。
+
+**但如果未來引入 Linux 節點，這一項一定要先設好** ——
+否則症狀是「job 成功、log 卻找不到」，而且不會有任何錯誤訊息。

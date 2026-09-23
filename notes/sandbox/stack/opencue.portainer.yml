@@ -70,6 +70,8 @@ services:
       --datasource.cue-data-source.jdbc-url=jdbc:postgresql://db/${POSTGRES_DB}
       --datasource.cue-data-source.username=${POSTGRES_USER}
       --datasource.cue-data-source.password=${POSTGRES_PASSWORD}
+      --log.frame-log-root.Windows=${FRAME_LOG_ROOT_WINDOWS}
+      --log.frame-log-root.debian=${FRAME_LOG_ROOT_LINUX}
     # 【規模化的正解】讓容器使用公司 DNS 與網域搜尋後綴，
     # 如此 Cuebot 解析短名稱 RENDER01 時會自動查 RENDER01.studio.local，
     # 完全不需要維護 extra_hosts。節點數量一多，extra_hosts 就不可行。
