@@ -209,3 +209,153 @@ docker exec opencue-registry \
 ```
 
 **升級與回滾都只是改 stack 的環境變數**，這正是把 image 參照抽成變數的用意。
+
+---
+
+## 升級與回滾實測
+
+「改 stack 的環境變數即可升級／回滾」先前只是推論，這一份是實測。
+
+### 測試方法：做出可分辨的兩個版本
+
+直接把同一個 image 標成兩個 tag 無法證明什麼 ——
+容器跑的是同一份內容，只是名字不同。
+
+所以用現有 image 加一層標記做出真正不同的版本，
+**只多一層，不需要重新編譯 Java**：
+
+```dockerfile
+FROM localhost:5000/opencue/cuebot:1.34.4-fe0b32bf
+RUN echo "ROLLBACK_TEST_V2" > /opt/opencue/VERSION_MARKER
+LABEL opencue.rollback.test="v2"
+```
+
+```bash
+docker build -t localhost:5000/opencue/cuebot:1.34.4-v2test .
+docker push localhost:5000/opencue/cuebot:1.34.4-v2test
+```
+
+### 升級
+
+只改 stack 的一個環境變數，`pullImage: true`：
+
+```
+OPENCUE_CUEBOT_IMAGE=localhost:5000/opencue/cuebot:1.34.4-v2test
+```
+
+結果：
+
+```
+opencue-cuebot | localhost:5000/opencue/cuebot:1.34.4-v2test | Up (healthy)
+docker exec opencue-cuebot cat /opt/opencue/VERSION_MARKER
+ROLLBACK_TEST_V2
+```
+
+### 回滾
+
+把環境變數改回原值，重新 PUT：
+
+```
+opencue-cuebot | localhost:5000/opencue/cuebot:1.34.4-fe0b32bf | Up (healthy)
+docker exec opencue-cuebot cat /opt/opencue/VERSION_MARKER
+cat: /opt/opencue/VERSION_MARKER: No such file or directory
+```
+
+**標記檔消失證明跑的真的是舊 image**，不只是 tag 字串換掉。
+
+兩個節點在 Cuebot 重啟後都自動重新註冊，狀態 `UP`。
+
+Portainer API 呼叫本身約 **53 秒**（含 pull 與重建容器）。
+
+## 【重要】升級時執行中的 frame 不會被中斷
+
+這是正式環境最關心的問題：**能不能在有工作在跑的時候升級？**
+
+實測方法：送出一個 150 秒的長 frame，等它進入 `RUNNING` 後，
+在執行中途觸發 stack 更新。
+
+結果：
+
+```
+更新前    RUNNING@render02
+更新中    RUNNING@render02        <- 存活
+更新中    RUNNING@render02
+更新後    SUCCEEDED@render02  exit 0
+```
+
+同時在節點容器內確認 `sleep 150` 的行程**全程沒有被中斷**。
+
+**原因是架構使然**：Cuebot 是**無狀態**的，frame 由 RQD 獨立執行，
+Cuebot 回來後 RQD 再把結果回報上去。
+
+**實務意義**：Cuebot 的升級不需要等農場清空，
+可以在有工作執行時進行。但仍有兩點要注意：
+
+| 注意 | 說明 |
+|---|---|
+| **停機期間不會派新工作** | 約 1 分鐘的空窗，閒置節點會空等 |
+| **停機時間不能太長** | RQD 有重試上限；超過的話 frame 可能被判定為孤兒 |
+
+本次停機約 1 分鐘，frame 毫無影響。更長的停機（例如 DB 遷移）
+需要另外評估。
+
+## 坑：registry 的刪除有兩個前提
+
+清理測試 image 時踩到的，對 `15` 的空間管理有直接影響。
+
+### 前提一：`REGISTRY_STORAGE_DELETE_ENABLED` 必須在啟動時設定
+
+```bash
+docker exec opencue-registry printenv | grep DELETE
+（沒有輸出）
+```
+
+本次的 registry 是用最簡單的 `docker run registry:2` 起的，
+沒有帶這個環境變數，**因此無法刪除任何 manifest**。
+
+**這個設定無法事後補上** —— 必須重新啟動 registry 才會生效。
+`stack/registry.portainer.yml` 的範本已包含它，
+但**正式部署時要確認真的有帶上**，否則之後想清理會發現做不到。
+
+### 前提二：現代的 buildx 推送的是 OCI manifest
+
+查詢 manifest digest 時用傳統的 Docker v2 header 會得到 404：
+
+```bash
+curl -I -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+  http://registry/v2/<repo>/manifests/<tag>
+HTTP/1.1 404 Not Found
+```
+
+加上 OCI 的型別才查得到：
+
+```bash
+curl -I -H "Accept: application/vnd.oci.image.manifest.v1+json, \
+application/vnd.docker.distribution.manifest.v2+json, \
+application/vnd.oci.image.index.v1+json" \
+  http://registry/v2/<repo>/manifests/<tag>
+
+HTTP/1.1 200 OK
+Content-Type: application/vnd.oci.image.index.v1+json
+Docker-Content-Digest: sha256:ebab3a78...
+```
+
+**寫清理腳本時一定要帶完整的 Accept header**，否則會誤判成「該 tag 不存在」
+而跳過，導致空間永遠回收不了。
+
+### 完整的刪除流程
+
+```bash
+# 1. 取得 digest（注意 Accept header）
+DIGEST=$(curl -s -I \
+  -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json" \
+  http://registry/v2/<repo>/manifests/<tag> \
+  | grep -i docker-content-digest | tr -d '\r' | cut -d' ' -f2)
+
+# 2. 刪除 manifest（需要 REGISTRY_STORAGE_DELETE_ENABLED=true）
+curl -X DELETE http://registry/v2/<repo>/manifests/$DIGEST
+
+# 3. 回收磁碟空間（沒有這一步，空間不會真的釋放）
+docker exec <registry容器> \
+  bin/registry garbage-collect /etc/docker/registry/config.yml
+```
