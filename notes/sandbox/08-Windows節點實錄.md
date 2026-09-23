@@ -218,6 +218,10 @@ cwd  C:\Users\chordee\AppData\Local\Temp/testing-testshot-.../0001-test_layer
 
 ## 仍未驗證
 
+> **注意**：本節寫於當時，部分項目後來已補測完成。
+> **最新的驗證狀態以 `19-驗證狀態總表.md` 為準。**
+
+
 | 項目 | 說明 |
 |---|---|
 | 真正的跨機器 | 本次 Windows 就是 Docker 宿主本身，靠 `host-gateway`。真實環境是不同實體機器走區網 |

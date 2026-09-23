@@ -115,6 +115,10 @@ render01   8.0    18.5G   UP     local.general  AUTO
 
 ## 尚未驗證的部分
 
+> **注意**：本節寫於當時，部分項目後來已補測完成。
+> **最新的驗證狀態以 `19-驗證狀態總表.md` 為準。**
+
+
 | 項目 | 說明 |
 |---|---|
 | 真正的跨機器連線 | 本次 render01 與 cuebot 在同一個 Docker network，靠內建 DNS 解析。真實的 Windows 節點要走實體網路與真實 DNS/IP |
