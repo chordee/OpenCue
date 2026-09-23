@@ -104,13 +104,69 @@ layer = Shell(
     "houdini_render",
     command=[wrapper, script],          # 串列，不是字串
     range="1-4",
-    tags=["general", "houdini_22_0_429"],
+    tags=["houdini_22_0_429"],          # 只放版本 tag，見下方說明
     env={"OPENCUE_RENDER_OUT": out, "OPENCUE_RENDERER": "karma"},
 )
 ```
 
-Cuebot 只會把工作派給同時帶有 `general` 與 `houdini_22_0_429` 標籤的節點。
-沒裝該版本的機器不會拿到這個 job。
+#### 【重要】tag 的比對是 regex 的「或」，不是「且」
+
+初版這裡寫成 `tags=["general", "houdini_22_0_429"]` 並說明
+「只會派給同時帶有兩個標籤的節點」。**那是錯的**，實測推翻了。
+
+Cuebot 的派工 SQL（`cuebot/.../dao/postgres/DispatchQuery.java:296, 363`）：
+
+```sql
+AND host.str_tags ~* ('(?x)' || layer.str_tags || '\y')
+```
+
+`~*` 是 PostgreSQL 的**正規表示式比對**，而 layer 的 tag 字串
+（多個 tag 以 ` | ` 串接，例如 `general | util`）**直接被當成 regex pattern** ——
+其中的 `|` 就是 regex 的「或」。
+
+所以只要 host 擁有**其中任一個** tag 就會被派工。
+加上 `general` 等於「任何在派工池裡的節點都符合」，**版本綁定完全失效**。
+
+#### 實測證據
+
+兩個節點，tag 刻意區隔：
+
+```
+LAPTOP-ULJICLO8   general houdini22 houdini_22_0_429 maya2027 nuke17 ...
+render02          general houdini21 houdini_21_0_729
+```
+
+**第一輪（錯誤寫法，tags 含 general）**：
+
+| layer tags | 預期 | 實際 |
+|---|---|---|
+| `general \| houdini_21_0_729` | render02 | **LAPTOP-ULJICLO8** |
+| `general \| houdini_22_0_429` | LAPTOP | LAPTOP-ULJICLO8 |
+| `general \| houdini_99_nonexistent` | 無人可派，應 WAITING | **LAPTOP-ULJICLO8** |
+
+三個全跑到同一台，連「沒有任何機器擁有該版本」的那個都被派出去了。
+
+**第二輪（正確寫法，只放版本 tag）**：
+
+| layer tags | 結果 | 執行主機 |
+|---|---|---|
+| `houdini_21_0_729` | SUCCEEDED | **render02** |
+| `houdini_22_0_429` | SUCCEEDED | **LAPTOP-ULJICLO8** |
+| `houdini_99_nonexistent` | **WAITING** | —— |
+
+版本綁定正確運作。
+
+#### 推論與實務建議
+
+- **要綁版本就只放版本 tag。** 不要混入 `general`
+- **若要允許多個版本擇一**，正好可以利用這個 OR 特性：
+  `tags=["houdini_22_0_429", "houdini_22_0_368"]` 表示兩個版本都可以
+- **注意 regex 的副作用**：tag 內容會被當成 pattern，
+  含有 `.` `*` `+` `(` 等字元的 tag 會有非預期的比對結果。
+  命名時只用英數與底線
+- 部分查詢有加 `\y`（單字邊界）而 `DispatchQuery.java:296` 沒有，
+  理論上可能發生**子字串誤配**（例如 `houdini2` 配到 `houdini22`）。
+  命名時避免讓某個 tag 成為另一個的前綴
 
 ### 為什麼指令要用「串列」
 
@@ -433,3 +489,125 @@ hython 快，這對農場的授權池有明顯好處。但本次無法觀測授�
 
 若採兩階段，階段 2 可以派給不需要完整 Houdini 的節點，
 `RQD_TAGS` 可另外標示（例如 `husk22`），與 `houdini22` 分開管理。
+
+---
+
+# 補充：用 Docker 容器模擬多節點
+
+沒有第二台實體機器時，**可以用額外的 RQD 容器當成其他節點**，
+驗證跨節點的派工行為。這不能取代真實的跨機器測試，但能涵蓋：
+
+| 可驗證 | 不可驗證 |
+|---|---|
+| 多節點同時註冊 | 真實網路與防火牆 |
+| **tag 派工是否正確落點** | Windows 特有行為（容器是 Linux） |
+| facility / allocation 的影響 | 實體機器的資源競爭 |
+| Cuebot 面對多節點的負載 | 共享儲存的真實延遲 |
+
+本次就是靠這個方法抓到兩個錯誤（tag 是 OR、facility 不匹配）。
+
+## 啟動第二個節點
+
+Rust RQD 容器需要三項處理（皆在前面的筆記中說明過）：
+
+```bash
+docker run -d --name render02 --hostname render02 --network opencue \
+  -e OPENCUE_RQD_CONFIG=/etc/rqd/render02.yaml \
+  -v /mnt/c/opencue/nodes:/etc/rqd:ro \
+  --entrypoint /bin/sh \
+  opencue-rqd:latest \
+  -c 'id -u <投job的使用者> >/dev/null 2>&1 || useradd --uid 2000 --gid 1000 -M <投job的使用者>; exec /app/openrqd'
+```
+
+設定檔 `render02.yaml`：
+
+```yaml
+grpc:
+  cuebot_endpoints: ["cuebot:8443"]
+
+machine:
+  use_ip_as_hostname: false
+  custom_tags:
+    - houdini21
+    - houdini_21_0_729
+```
+
+## 坑 #16：Rust RQD 的 tag 無法用環境變數設定
+
+直覺上會想用環境變數，但會失敗：
+
+```bash
+-e "OPENRQD__MACHINE__CUSTOM_TAGS=general,houdini21"
+```
+```
+thread 'main' panicked:
+invalid type: string "general,houdini21", expected a sequence
+```
+
+`rust/crates/rqd/src/config/mod.rs:637-639` 雖然設了
+`.list_separator(",")`，但**沒有指定哪些 key 要當清單解析**，
+所以清單型欄位無法從環境變數讀入。
+
+**必須改用設定檔**，並以 `OPENCUE_RQD_CONFIG` 指向它
+（`config/mod.rs:622`）。
+
+## 坑 #17：facility 不匹配會靜默地不派工
+
+第二個節點起來、tag 也正確，但 job 仍停在 WAITING。
+
+原因是 **job 綁定 facility，跨 facility 不會派工**：
+
+```
+LAPTOP-ULJICLO8   alloc = local.desktop    <- facility local
+render02          alloc = cloud.general    <- facility cloud
+```
+
+而 job 的 facility 來自 pycue 的 `cuebot.facility_default: local`。
+
+**兩種 RQD 的預設 facility 都是 `cloud`**：
+
+| 實作 | 預設值 | 位置 |
+|---|---|---|
+| Rust RQD | `cloud` | `rust/crates/rqd/src/config/mod.rs:162` |
+| Python RQD | `cloud` | `rqd/rqd/rqconstants.py:44`（`DEFAULT_FACILITY`） |
+
+所以**新節點預設都會落在 `cloud.general`**，而用戶端投出來的 job 預設是
+`local` —— 兩邊對不上，永遠不會派工。
+
+先前 Windows 節點之所以正常，是因為稍早手動執行過
+`cueadmin -force -move local.desktop -host LAPTOP-ULJICLO8`。
+
+### 症狀與診斷
+
+**症狀與「tag 不匹配」完全相同**：host 顯示 `UP` / `OPEN`，
+job 顯示 `PENDING`，frame 停在 `WAITING`，沒有任何錯誤訊息。
+
+診斷時要同時看兩件事：
+
+```bash
+# 1. host 在哪個 allocation（前綴就是 facility）
+cueadmin -lh
+
+# 2. job 在哪個 facility
+cueadmin -lji <job>        # 或看 CueGUI 的 Attributes
+```
+
+### 解法
+
+把節點移到 job 所在 facility 的 allocation：
+
+```bash
+cueadmin -force -move local.general -host render02
+```
+
+移動後先前卡住的 job **會自動被撿走**，不需要重投。
+
+或在節點的設定檔指定 facility：
+
+```yaml
+machine:
+  facility: local
+```
+
+**正式部署時建議統一規劃 facility**，並在每個節點的設定檔明確指定，
+不要依賴預設值。

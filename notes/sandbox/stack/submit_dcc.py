@@ -61,7 +61,11 @@ def main():
     args = ap.parse_args()
 
     preset = PRESETS[args.app]
-    tags = ["general", preset["tag"]]
+    # 【重要】只放版本 tag，不要加 general。
+    # Cuebot 的比對是 regex：host.str_tags ~* ('(?x)' || layer.str_tags || '\y')
+    # layer 的多個 tag 會以 " | " 串接，而 | 在 regex 裡是「或」——
+    # 加上 general 等於「任何有 general 的節點都符合」，版本綁定完全失效。
+    tags = [preset["tag"]]
     short_name = "%s_render_%s" % (args.app, preset["version"])
 
     print("job     :", short_name)

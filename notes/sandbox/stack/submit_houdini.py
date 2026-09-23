@@ -58,7 +58,9 @@ def main():
         "houdini_render",
         command=command,
         range=args.frames,
-        tags=["general", version_tag],
+        # 只放版本 tag。Cuebot 的 tag 比對是 regex 且以 | 分隔（即「或」），
+        # 多加 general 會讓版本綁定失效。詳見 notes/sandbox/12。
+        tags=[version_tag],
         env={
             "OPENCUE_RENDER_OUT": args.out,
             "OPENCUE_RENDERER": args.renderer,
@@ -69,7 +71,7 @@ def main():
 
     print("job      :", short_name)
     print("frames   :", args.frames)
-    print("tags     :", ["general", version_tag])
+    print("tags     :", [version_tag])
     print("command  :", command)
     print("output   :", args.out)
     print("renderer :", args.renderer)
