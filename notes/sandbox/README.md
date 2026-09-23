@@ -32,7 +32,21 @@
 | `14-Registry流程.md` | build → push → Portainer pull 完整驗證與正式環境要求 |
 | `15-空間規劃.md` | 各項目的實測用量、成長特性與清理策略 |
 | `16-Portainer與SSH的分工.md` | 哪些工作 Portainer 做得到、哪些需要宿主權限 |
+| `17-故障排查與常見疏失速查.md` | **遇到問題先看這篇**：報錯現象 ➔ 疏失對準 ➔ 解法對照手冊 |
 | `stack/` | 可直接取用的設定檔：Portainer stack、環境變數、RQD、CueNIMBY、用戶端 |
+
+## 閱讀建議（依工作角色導讀）
+
+- **想快速掌握架構與運作原理**：
+  先讀 `02-目標架構.md`（含 Frame 端到端生命週期圖解）與 `03-容器說明.md`。
+- **負責部署伺服器與算圖節點**：
+  詳讀 `07-Portainer部署實錄.md`、`08-Windows節點實錄.md`、`14-Registry流程.md`，並取用 `stack/` 內的範本。
+- **負責藝術家工作站與 DCC Pipeline**：
+  詳讀 `09-NIMBY與混合機隊.md`、`10-Windows用戶端工具.md`、`12-真實DCC算圖.md`（Houdini/Maya/Nuke 包裝實務）。
+- **IT 網管、資安與維運規劃**：
+  詳讀 `11-正式部署風險與待辦.md`、`15-空間規劃.md`、`16-Portainer與SSH的分工.md`。
+- **上線除錯與突發狀況**：
+  直接翻閱 **`17-故障排查與常見疏失速查.md`**，依畫面報錯快速對準可能疏失點。
 
 ## 名詞對照
 
@@ -46,3 +60,5 @@
 | CueWeb | 網頁版監控 UI |
 | CueGUI | 桌面版監控 UI（Cuetopia / CueCommander） |
 | CueSubmit | 投 job 的桌面工具 |
+| CueNIMBY | 藝術家工作站的系統列鎖定與排程工具 |
+
