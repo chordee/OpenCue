@@ -435,3 +435,135 @@ RV / xSTUDIO，投資報酬率不高。
 
 **先做第 1 項。** 多數情況它就夠了，而且今天就能做 —— 反正 CueWeb
 本來就必須自行 build（見本文件開頭）。
+
+---
+
+## CueWeb 的投遞功能（CueSubmit 頁面）
+
+CueWeb 內建投遞頁面（`app/cuesubmit/page.tsx`），**不需要安裝桌面版 CueSubmit
+就能從瀏覽器投 job**。對 artist 來說門檻最低。
+
+實測可用，但**有幾個對混合農場關鍵的限制**。
+
+### 欄位說明
+
+**Job Info**
+
+| 欄位 | 說明 |
+|---|---|
+| Job Name / Show / Shot | 自訂 |
+| Facility | 下拉選單，選 `local` |
+| **Username** | 有啟用認證時自動帶入（email 的 `@` 前半段）。**未啟用認證時為空白且可編輯** |
+
+**Username 要填什麼**：填**實際會在 render node 上被建立的使用者名稱**。
+
+這個值會成為 job 的 `str_user`，而 **RQD 會拿它去建立同名使用者**
+（見 `04` 坑 #4）。填一個節點上沒處理過的名字，
+在 Linux 節點會觸發 `useradd` 失敗導致 frame 被 abort。
+
+**Layer Info**
+
+| 欄位 | 說明 |
+|---|---|
+| **Layer Name**（必填） | **至少 3 個字元** —— 少於 3 個會被 Cuebot 拒絕：`The layer name must be at least 3 characters` |
+| **Frame Spec**（必填） | 例如 `1-100` |
+| Command | 執行指令 |
+| Dependency Type | 多層時才需要 |
+| Chunk Size | 一個 frame 處理幾格 |
+| **Memory** | **預設 256m，一定要改**，見下 |
+| Job Type / Services / Limits | 選填 |
+| Override Cores | 選填 |
+
+### 限制一：沒有 layer tag 欄位
+
+這是對混合農場**最關鍵的限制**。
+
+實測從 CueWeb 投出的 job，其 layer tags 是：
+
+```
+general | desktop
+```
+
+**沒有辦法指定 DCC 版本或平台的 tag。** 而 tag 是 regex 的「或」比對
+（見 `12`），所以任何帶 `general` 的節點都會收下。
+
+實測後果：一個要跑 Windows 包裝腳本的 job，被派到了 Linux 容器節點：
+
+```
+/tmp/0002-houdini_render.sh: line 17:
+C:/opencue/bin/hython-22.0.429.bat: No such file or directory
+exitStatus 127
+```
+
+三個 frame 全部 DEAD。
+
+**鎖住不該收工作的節點後重試**（`cueman -force -retry`），
+三個 frame 立刻在 Windows 節點上成功完成 —— 證明 job 定義本身沒問題，
+問題純粹是無法指定 tag。
+
+### 限制二：沒有 OS 欄位
+
+連帶影響 per-OS 的 frame log 路徑對應（見 `12`）。
+
+實測那批失敗的 frame，log 落在 Linux 節點的：
+
+```
+/app/C:/opencue/logs/testing/testshot/logs/...
+```
+
+因為 job 沒有 `os`，per-OS 的對應沒生效，退回 `default_os`
+（Windows 路徑），Linux 節點把它當相對路徑處理。
+
+### 限制三：Memory 預設 256 MB 太小
+
+**這一項在單一平台的農場也會出事。**
+
+實測 Houdini 的 frame：
+
+| | 值 |
+|---|---|
+| `int_mem_min`（宣告需求） | **256 MB** |
+| `int_mem_max_used`（實際用量） | **約 1,080 MB** |
+
+**超出 4 倍，但 frame 沒有被砍。** 原因是
+`opencue.properties:261`：
+
+```properties
+# How much can a frame exceed its reserved memory.
+#  - -1.0 makes the feature inactive
+dispatcher.oom_frame_overboard_allowed_threshold=-1.0
+```
+
+這個功能**預設關閉**（註解說明是為了改善重試邏輯而暫時停用）。
+
+**但不代表可以隨便填。** 真正的風險是 Cuebot 的資源帳目失真：
+
+| | Cuebot 以為 | 實際 |
+|---|---|---|
+| 每個 frame 佔用 | 256 MB | 1,080 MB |
+| 節點還剩多少記憶體 | 很多 | 快用完了 |
+
+Cuebot 會繼續往那台節點派工，直到**真的 OOM** ——
+屆時觸發的是作業系統層級的 oom-killer 或 Windows 記憶體壓力，
+那種失敗比「frame 被 Cuebot 砍掉」難查得多。
+
+最後防線是這兩個設定，但它們是在節點**實際**用量超標時才介入：
+
+```properties
+dispatcher.oom_max_safe_used_physical_memory_threshold=0.9
+dispatcher.oom_max_safe_used_swap_memory_threshold=0.05
+```
+
+**結論：Memory 欄位一定要填實際值。** Houdini 約 `2g`。
+
+### 適用範圍的判斷
+
+| 農場型態 | CueWeb 投遞 |
+|---|---|
+| 單一平台、單一 DCC 版本 | **可用**，只要記得填 Memory |
+| 多版本 DCC 並存 | **不適用** —— 無法指定版本 tag |
+| 混合作業系統 | **不適用** —— 無法指定 OS |
+
+**本專案屬於「多版本 DCC」**，所以正式投遞應使用 pyoutline 腳本
+（`stack/submit_dcc.py`）或 DCC 內嵌外掛，
+CueWeb 的投遞頁面適合臨時測試或簡單工作。
