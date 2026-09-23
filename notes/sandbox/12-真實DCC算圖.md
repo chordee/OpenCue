@@ -190,6 +190,25 @@ render02          general houdini21 houdini_21_0_729
 
 版本綁定正確運作。
 
+#### 【更好的做法】改用 Service 管理 tag 與資源
+
+本節的結論是「投遞時只放版本 tag」。那可行，但**有更好的做法** ——
+把 tag 與資源需求定義在 **Service** 上，投遞時只指定 service。
+
+layer 的 tags 預設就是從 service 繼承的（這也解釋了為什麼 pyoutline 的
+`Shell` 預設得到 `general | util`）。自建 service 後：
+
+```python
+Shell("svc_render", command=[...], range="1-2", service="houdini2204")
+# 不需要寫 tags，也不需要寫 memory
+```
+
+好處是資源需求集中管理、投遞端不必懂 tag 規則，
+而且 **CueWeb 的投遞表單有 Services 下拉選單**，選對 service 即可。
+
+**完整說明與實測見 `21-Service與資源模型.md`。**
+以下仍保留手寫 tag 的規則，因為理解它才能理解 service 在做什麼。
+
 #### 推論與實務建議
 
 - **要綁版本就只放版本 tag。** 不要混入 `general`
