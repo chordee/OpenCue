@@ -70,7 +70,7 @@ if start_time <= current_time <= end_time:
 return "available" if desired_state == "disabled" else "disabled"
 ```
 
-重點兩項：
+重點三項：
 
 1. **時段內套用設定值，時段外自動變成相反狀態。**
    所以 `09:00-18:00 disabled` 就等於「上班不借、其餘時間開放」，
@@ -79,6 +79,9 @@ return "available" if desired_state == "disabled" else "disabled"
    範例設定只列週一到週五，所以週末排程器完全不介入 ——
    星期五晚上變成 available 之後，會一路維持到星期一早上。
    對「下班後借用」來說這正是想要的。
+3. **跨午夜的時段會完全失效** —— 見下方「坑 #11」。
+   所以務必用不跨午夜的「封鎖時段」來表達，例如 `09:00-18:00 disabled`，
+   **不要**寫成 `18:00-09:00 available`。
 
 ## 實測
 
@@ -195,4 +198,51 @@ Windows 服務，開機自啟的問題自然解決。
 | 手動切換 | 只測了排程自動切換，沒測使用者從選單手動開關 |
 | RQD NIMBY 即時偵測 | `OVERRIDE_NIMBY = True` 的鍵鼠偵測與砍 frame 行為未測 |
 | 專職算圖機角色 | 目前只有一台機器，扮演工作站。雙角色並存的派工行為未測 |
-| 跨午夜的時段 | 例如 `18:00-09:00` 這種跨日設定，判定邏輯是否正確未測 |
+（跨午夜的時段已驗證，結果見下方坑 #11。）
+
+
+## 坑 #11：跨午夜的排程時段完全失效
+
+**排程設定務必寫成不跨午夜的形式。** 這是實測出來的限制。
+
+`scheduler.py:83` 用的是單純的區間比較：
+
+```python
+if start_time <= current_time <= end_time:
+    return desired_state
+return "available" if desired_state == "disabled" else "disabled"
+```
+
+時段跨午夜時 `start > end`，這個條件**永遠不成立**，於是一律回傳相反狀態，
+24 小時皆然。
+
+實測（以 mock 注入時間，直接呼叫真實的 `_check_schedule()`）：
+
+| 寫法 | 時間 | 預期 | 實際 |
+|---|---|---|---|
+| `09:00-18:00 disabled` | 10:00 | disabled | disabled |
+| `09:00-18:00 disabled` | 20:00 | available | available |
+| `18:00-09:00 available` | 20:00 | available | **disabled** |
+| `18:00-09:00 available` | 02:00 | available | **disabled** |
+| `22:00-06:00 disabled` | 23:00 | disabled | **available** |
+| `22:00-06:00 disabled` | 03:00 | disabled | **available** |
+
+兩種錯法的後果相反，都很嚴重：
+
+- `18:00-09:00 available` → 機器**永遠不被借用**，農場靜默地少了一批算力
+- `22:00-06:00 disabled` → 在**明確要求不要借用的時段反而開放機器**
+
+### 正確寫法
+
+利用「時段外自動取相反狀態」的特性，用**不跨午夜的封鎖時段**表達需求：
+
+| 需求 | 正確寫法 | 錯誤寫法 |
+|---|---|---|
+| 下班後才借用 | `09:00-18:00 disabled` | `18:00-09:00 available` |
+| 夜間不借用 | 無法用單一時段表達（見下） |  `22:00-06:00 disabled` |
+
+「夜間不借用、白天借用」這種需求無法用單一不跨午夜的時段表達，
+在修正上游程式碼之前，只能拆成兩段或改用其他方式。
+幸好我們的情境是「下班後才借用」，剛好可以用 `09:00-18:00 disabled` 表達。
+
+詳細根因與建議修法見 `05-可回饋上游的問題.md` 第 12 項。
