@@ -29,6 +29,7 @@
 | `11-正式部署風險與待辦.md` | 規模化後才會遇到的問題：DNS、UNC、防火牆、初始化、EDR、備份 |
 | `12-真實DCC算圖.md` | Houdini / Maya / Nuke 實際算圖、多版本共存與環境變數的坑 |
 | `13-CueWeb與RESTGateway.md` | 網頁 UI 部署、JWT 驗證、跨平台 frame log 的解法 |
+| `14-Registry流程.md` | build → push → Portainer pull 完整驗證與正式環境要求 |
 | `stack/` | 可直接取用的設定檔：Portainer stack、環境變數、RQD、CueNIMBY、用戶端 |
 
 ## 名詞對照

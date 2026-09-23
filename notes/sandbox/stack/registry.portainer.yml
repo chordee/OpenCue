@@ -1,0 +1,32 @@
+# 內部 Docker Registry —— 獨立的 stack，不屬於 opencue。
+#
+# 為什麼需要：OpenCue 的 cueweb 與 rest-gateway 沒有發布公開 image，
+# cuebot 的公開版本又遠落後於原始碼，所以自建 image 是必要步驟，
+# 而 Portainer 部署時只能從 registry 拉取。詳見 notes/sandbox/14。
+#
+# 這份是最小可用版本。正式環境還需要：
+#   - TLS 憑證（見下方「非 localhost 必須 TLS」）
+#   - 認證（htpasswd 或對接 LDAP/SSO）
+#   - 垃圾回收排程（registry garbage-collect）
+#   - 備份 registry-data volume
+
+services:
+  registry:
+    image: registry:2
+    container_name: opencue-registry
+    ports:
+      - "${REGISTRY_PORT:-5000}:5000"
+    volumes:
+      - registry-data:/var/lib/registry
+    restart: unless-stopped
+    environment:
+      # 允許刪除 manifest，配合定期 garbage-collect 回收空間
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+volumes:
+  registry-data:
+    name: opencue-registry-data
