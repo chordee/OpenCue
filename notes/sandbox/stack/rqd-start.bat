@@ -4,13 +4,12 @@ REM  OpenCue render node startup wrapper (Windows)
 REM
 REM  ASCII ONLY. cmd.exe parses .bat files using the OEM code page (e.g. CP950),
 REM  so non-ASCII comments become mojibake and can break parsing.
-REM  Chinese documentation for this file lives in notes/sandbox/08 and 09.
+REM  Chinese documentation for this file lives in notes/sandbox/08, 09 and 12.
 REM
 REM  Purpose:
 REM    1. Fix the working directory, so Linux-style paths handed down by Cuebot
 REM       do not resolve against whichever drive happened to be current.
-REM    2. Provide a clean environment, instead of inheriting a developer shell
-REM       PATH which can shadow Windows built-ins.
+REM    2. Force a deterministic environment for every frame this node runs.
 REM    3. Start CueNIMBY alongside RQD on artist workstations, in the right
 REM       order.
 REM
@@ -28,6 +27,24 @@ set OPENCUE_VENV=C:\Users\chordee\opencue-win-venv
 REM Node role: workstation = artist machine, needs CueNIMBY scheduling
 REM            render      = dedicated render node, no CueNIMBY
 set NODE_ROLE=workstation
+
+REM --- Deterministic environment ---------------------------------------------
+REM Do NOT rely on whatever PATH the launching process happened to have.
+REM A developer shell (Git Bash, for example) puts its own bin directories
+REM ahead of the Windows ones, which silently shadows built-ins such as
+REM timeout.exe and find.exe for every frame this node runs.
+REM Frames must see the same environment on every node, regardless of how
+REM RQD was started.
+set PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
+set PATH=%PATH%;%SystemRoot%\System32\WindowsPowerShell\v1.0
+
+REM RQD passes TMP to frames but not TEMP. Several DCC applications read TEMP
+REM only, and fall back to a hardcoded path when it is missing (Nuke tries
+REM C:\temp and every frame fails). Set both.
+if not exist "%OPENCUE_HOME%\tmp" mkdir "%OPENCUE_HOME%\tmp"
+set TEMP=%OPENCUE_HOME%\tmp
+set TMP=%OPENCUE_HOME%\tmp
+REM ---------------------------------------------------------------------------
 
 cd /d "%OPENCUE_HOME%"
 set RQD_CONFIG_FILE=%OPENCUE_HOME%\rqd.conf

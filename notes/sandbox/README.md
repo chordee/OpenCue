@@ -27,6 +27,7 @@
 | `09-NIMBY與混合機隊.md` | 工作站與專職算圖機的分工、CueNIMBY 時段排程實測 |
 | `10-Windows用戶端工具.md` | CueGUI / CueSubmit 在 Windows 的安裝與設定路徑 |
 | `11-正式部署風險與待辦.md` | 規模化後才會遇到的問題：DNS、UNC、防火牆、初始化、EDR、備份 |
+| `12-真實DCC算圖.md` | Houdini / Maya / Nuke 實際算圖、多版本共存與環境變數的坑 |
 | `stack/` | 可直接取用的設定檔：Portainer stack、環境變數、RQD、CueNIMBY、用戶端 |
 
 ## 名詞對照
