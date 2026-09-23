@@ -611,3 +611,113 @@ machine:
 
 **正式部署時建議統一規劃 facility**，並在每個節點的設定檔明確指定，
 不要依賴預設值。
+
+---
+
+# 混合作業系統的農場
+
+用容器模擬多節點時，順帶驗證了一件原本沒預期會測到的事：
+**同一個 OpenCue 農場可以同時包含 Windows 與 Linux 節點**，
+而且有專門的機制控制工作要跑在哪種系統上。
+
+## 實測環境
+
+```
+LAPTOP-ULJICLO8   Windows   （實體機，裝了 Houdini / Maya / Nuke）
+render02          debian    （容器，無 DCC）
+```
+
+兩台都註冊在同一個 Cuebot、同一個 allocation（`local.general` / `local.desktop`），
+彼此並存無衝突。
+
+## OS 過濾：比 tag 更適合區分平台
+
+Cuebot 的派工 SQL 有獨立的 OS 條件
+（`DispatchQuery.java:284-287`，另見 350、431、457 行）：
+
+```sql
+AND (
+      job.str_os IS NULL OR job.str_os = ''
+   OR job.str_os IN ?
+)
+```
+
+語意是：
+
+- **job 沒指定 OS** → 不限制，任何平台的節點都可以收
+- **job 指定了 OS** → 只派給該平台的節點
+
+### 怎麼指定
+
+`outline.cuerun.launch()` 的 `os` 參數（`backend/cue.py:277`）：
+
+```python
+outline.cuerun.launch(ol, use_pycuerun=False, os="Windows")
+```
+
+節點回報的 OS 字串來自各自的 RQD：
+
+| 節點 | 回報值 |
+|---|---|
+| Windows 實體機 | `Windows` |
+| Debian 容器 | `debian` |
+
+（Python RQD 用 `platform.system()`，見 `rqd/rqd/rqconstants.py:177` 的 `SP_OS`。）
+
+### 實測
+
+兩個 job **完全相同**（同樣的 `/bin/sleep 8`、都不指定 tag），
+唯一差別是 `os` 參數：
+
+| job 要求的 os | 狀態 | 執行主機 |
+|---|---|---|
+| `debian` | SUCCEEDED | **render02** |
+| `Windows` | **DEAD** | **LAPTOP-ULJICLO8** |
+
+Windows 那個 DEAD 是**預期內的**：`/bin/sleep` 在 Windows 上不存在。
+**失敗本身正好證明它確實被派到了 Windows 節點** ——
+如果 OS 過濾沒生效，它會跑到 render02 上並成功。
+
+## 實務建議：OS 用 `os` 參數，版本用 tag
+
+兩種機制各有適合的用途，不要混用：
+
+| 要區分的事 | 用什麼 | 原因 |
+|---|---|---|
+| **平台**（Windows / Linux / macOS） | `os` 參數 | 專用欄位，語意明確，且是「等於」比對 |
+| **DCC 版本、硬體特性** | layer tag | tag 可自由命名，但要注意是 **regex 的「或」** |
+
+**為什麼不要用 tag 表示平台**：tag 是 OR 比對，
+一旦 layer 有多個 tag，平台條件就可能被其他 tag 繞過
+（見前面「tag 比對是 regex 的或」那一節的實測）。
+`os` 是獨立的 AND 條件，不會被 tag 影響。
+
+## 對本專案的意義
+
+目標環境是「Linux 主機跑 Cuebot、Windows 機器算圖」，
+**理論上不需要混合節點**。但這個特性在兩種情況下有用：
+
+1. **過渡期** —— 若未來要引入 Linux 算圖節點，兩者可以共存，
+   不需要分成兩座農場
+2. **輔助工作** —— 有些非算圖的工作（檔案轉換、代理圖產生、清理作業）
+   放在 Linux 容器上跑更輕量，可以與 Windows 算圖節點共用同一個 Cuebot
+
+## 但要清楚容器模擬「沒有」驗證到什麼
+
+容器節點是 Linux，所以以下 Windows 專屬的多機議題**完全沒有涵蓋**：
+
+| 項目 | 為什麼測不到 |
+|---|---|
+| 第二台 Windows 的短主機名稱能否被 Cuebot 解析 | 容器用 Docker 內建 DNS，非公司 DNS |
+| Windows 防火牆的入站 8444 | 容器在同一個 Docker network，沒經過防火牆 |
+| 多台機器的磁碟機代號是否真的一致 | 容器沒有磁碟機代號 |
+| Windows 服務模式（session 0）能否看到網路磁碟機 | 容器不是 Windows |
+| **包裝腳本在「DCC 裝在不同路徑」的機器上是否有效** | render02 沒裝 DCC |
+| 真實網路延遲對共享儲存的影響 | 同一台機器內部通訊 |
+
+**最後兩項特別重要** —— 包裝腳本的整個設計目的就是處理
+「每台機器 DCC 裝在不同位置」，但目前只在一台機器上驗證過。
+
+**這些應列為正式部署第一台 Windows 節點的驗收項目**
+（見 `18` 的部署順序）。只要找到任何一台閒置的實體 Windows 機器，
+即使不裝 DCC，也能驗證前四項最容易出事的部分。
