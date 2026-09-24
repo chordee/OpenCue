@@ -73,7 +73,7 @@ cuebot.facility:
         - linux-server.studio.local:8443
 ```
 
-範本見 `notes/deploy/client/opencue-client.yaml`。
+範本見 [`notes/deploy/client/opencue-client.yaml`](../deploy/client/opencue-client.yaml)。
 
 也可以用環境變數 `CUEBOT_HOSTS` 直接覆寫（本次測試用的方式），
 但那需要每台機器設環境變數，不如發一份設定檔到 `%APPDATA%\opencue\` 乾淨。

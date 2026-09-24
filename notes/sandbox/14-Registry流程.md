@@ -14,7 +14,7 @@
 
 ## 架設 registry
 
-範本見 `notes/deploy/server/registry.portainer.yml`。本次測試用的最小指令：
+範本見 [`notes/deploy/server/registry.portainer.yml`](../deploy/server/registry.portainer.yml)。本次測試用的最小指令：
 
 ```bash
 docker run -d --name opencue-registry --restart unless-stopped \
@@ -314,7 +314,7 @@ docker exec opencue-registry printenv | grep DELETE
 沒有帶這個環境變數，**因此無法刪除任何 manifest**。
 
 **這個設定無法事後補上** —— 必須重新啟動 registry 才會生效。
-`notes/deploy/server/registry.portainer.yml` 的範本已包含它，
+[`notes/deploy/server/registry.portainer.yml`](../deploy/server/registry.portainer.yml) 的範本已包含它，
 但**正式部署時要確認真的有帶上**，否則之後想清理會發現做不到。
 
 ### 前提二：現代的 buildx 推送的是 OCI manifest

@@ -45,7 +45,7 @@ artist 無感；下班後才整台加入農場。
 設定檔位置：`~/.config/opencue/cuenimby.json`
 （Windows 上是 `C:\Users\<user>\.config\opencue\cuenimby.json`）
 
-範本見 `notes/deploy/node/cuenimby-workstation.json`：
+範本見 [`notes/deploy/node/cuenimby-workstation.json`](../deploy/node/cuenimby-workstation.json)：
 
 ```json
 {
@@ -249,12 +249,12 @@ return "available" if desired_state == "disabled" else "disabled"
 在修正上游程式碼之前，只能拆成兩段或改用其他方式。
 幸好我們的情境是「下班後才借用」，剛好可以用 `09:00-18:00 disabled` 表達。
 
-詳細根因與建議修法見 [`05-可回饋上游的問題.md`](05-可回饋上游的問題.md) 第 12 項。
+詳細根因與建議修法見 [`05-可回饋上游的問題.md` 第 12 項](05-可回饋上游的問題.md#12-cuenimby-的排程無法處理跨午夜時段且失效方向可能與意圖相反)。
 
 
 ## 工作站的啟動腳本必須同時帶起 RQD 與 CueNIMBY
 
-`notes/deploy/node/rqd-start.bat` 一開始只啟動 `rqd.exe`，這對工作站是不完整的 ——
+[`notes/deploy/node/rqd-start.bat`](../deploy/node/rqd-start.bat) 一開始只啟動 `rqd.exe`，這對工作站是不完整的 ——
 沒有 CueNIMBY 就沒有時段排程，工作站會 24 小時開放。
 
 腳本已更新，用 `NODE_ROLE` 區分兩種角色：

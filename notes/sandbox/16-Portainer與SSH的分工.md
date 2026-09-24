@@ -49,8 +49,8 @@ Portainer 沒有 build context，compose 裡的 `build:` 用不了。
 
 | 工作 | 來源 | Portainer |
 |---|---|---|
-| PostgreSQL 歷史表定期清理 | [`11`](11-正式部署風險與待辦.md) 第 6 點 | ❌ ⚠ |
-| `pg_dump` 定期備份 | [`11`](11-正式部署風險與待辦.md) 第 6 點 | ❌ ⚠ |
+| PostgreSQL 歷史表定期清理 | [`11` 第 6 點](11-正式部署風險與待辦.md#6-postgresql-的資料保留與備份) | ❌ ⚠ |
+| `pg_dump` 定期備份 | [`11` 第 6 點](11-正式部署風險與待辦.md#6-postgresql-的資料保留與備份) | ❌ ⚠ |
 | registry garbage-collect | [`14`](14-Registry流程.md) | ❌ ⚠ |
 | frame log 保留期清理 | [`15`](15-空間規劃.md) | ❌ ⚠ |
 | build cache 清理（建置機器） | [`15`](15-空間規劃.md) | ❌ |
@@ -78,7 +78,7 @@ Portainer 沒有 build context，compose 裡的 `build:` 用不了。
 | 工作 | 說明 |
 |---|---|
 | Docker 開機自啟（systemd） | 宿主重開機後 stack 要自己回來 |
-| 防火牆規則 | 8443 對 Windows 節點開放（見 [`11`](11-正式部署風險與待辦.md) 第 3 點） |
+| 防火牆規則 | 8443 對 Windows 節點開放（見 [`11` 第 3 點](11-正式部署風險與待辦.md#3-網路通訊矩陣與防火牆)） |
 | 掛載共享儲存 | CueWeb 要讀 frame log ⚠（可用 CIFS volume 迴避 mount，但宿主仍須具備 cifs-utils） |
 | TLS 憑證安裝 | registry、反向代理 |
 | OS 更新與疑難排解 | |

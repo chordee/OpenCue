@@ -64,7 +64,7 @@ if not exist "%HB%\hython.exe" (
 exit /b %ERRORLEVEL%
 ```
 
-範本見 `notes/deploy/node/hython-22.0.429.bat`。**必須是純 ASCII**（見 [`09`](09-NIMBY與混合機隊.md) 坑 #13）。
+範本見 [`notes/deploy/node/hython-22.0.429.bat`](../deploy/node/hython-22.0.429.bat)。**必須是純 ASCII**（見 [`09` 坑 #13](09-NIMBY與混合機隊.md#坑-13bat-檔必須是純-ascii)）。
 
 一台節點只會有它真正裝了的版本的包裝腳本。找不到執行檔時明確回傳 127，
 而不是靜默失敗。
@@ -233,11 +233,11 @@ if not isinstance(cmd, (tuple, list, set)):
 字串會經過 `shlex.split()`，而 POSIX 模式下反斜線被當成跳脫字元吃掉 ——
 Windows 路徑會被破壞。傳串列就完全繞過。
 
-投遞腳本見 `notes/sandbox/lab/submit_houdini.py`。
+投遞腳本見 [`notes/sandbox/lab/submit_houdini.py`](lab/submit_houdini.py)。
 
 ## 算圖腳本
 
-`notes/sandbox/lab/houdini_render_frame.py`，重點設計：
+[`notes/sandbox/lab/houdini_render_frame.py`](lab/houdini_render_frame.py)，重點設計：
 
 - **frame 編號取自環境變數 `CUE_IFRAME`**，不依賴指令字串代換。
   RQD 會為每個 frame 注入這個變數，比 `%{FRAME}` 代換更穩。
@@ -365,7 +365,7 @@ Nuke 是 0，因為每個 frame 只跑 0.05 秒，在 10 秒的採樣間隔之�
 Render.exe -r sw -s %CUE_IFRAME% -e %CUE_IFRAME% -rd "%OUTDIR%" "%SCENE%"
 ```
 
-包裝腳本 `notes/deploy/node/maya-render-2027.bat` 的關鍵設計：**frame 由 `CUE_IFRAME`
+包裝腳本 [`notes/deploy/node/maya-render-2027.bat`](../deploy/node/maya-render-2027.bat) 的關鍵設計：**frame 由 `CUE_IFRAME`
 環境變數傳入**，所以 job 指令本身與 frame 無關，不需要字串代換。
 
 `-r sw`（Maya Software）不需要額外授權。Arnold 需要 MtoA 授權，未測試。
@@ -409,7 +409,7 @@ Windows 應用程式普遍讀 `TEMP`，Nuke 找不到就退回寫死的 `C:/temp
 模組搜尋路徑）不會自動出現在 frame 環境裡。
 **每個包裝腳本都應該明確設定它需要的環境**，不要假設繼承得到。
 
-修法（`notes/deploy/node/nuke-17.0v1.bat`）：
+修法（[`notes/deploy/node/nuke-17.0v1.bat`](../deploy/node/nuke-17.0v1.bat)）：
 
 ```bat
 if "%NUKE_DISK_CACHE%"=="" set NUKE_DISK_CACHE=C:\opencue\tmp\nuke
@@ -433,7 +433,7 @@ PATH=C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;...
 這是個容易自我欺騙的檢查：看環境變數設定是乾淨的，不代表**執行中的行程**
 拿到的是乾淨的。**要驗證就去看 frame log 裡實際的 `env PATH=`。**
 
-修法（`notes/deploy/node/rqd-start.bat`）—— 不繼承，直接指定：
+修法（[`notes/deploy/node/rqd-start.bat`](../deploy/node/rqd-start.bat)）—— 不繼承，直接指定：
 
 ```bat
 set PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
@@ -470,7 +470,7 @@ PATH=C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32
 RQD_TAGS = general houdini22 houdini_22_0_429 maya2027 maya_2027 nuke17 nuke_17_0v1
 ```
 
-投遞腳本 `notes/sandbox/lab/submit_dcc.py` 內含三者的 preset，用法：
+投遞腳本 [`notes/sandbox/lab/submit_dcc.py`](lab/submit_dcc.py) 內含三者的 preset，用法：
 
 ```bash
 python submit_dcc.py houdini --frames 1-4

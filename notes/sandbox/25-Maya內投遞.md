@@ -1,6 +1,6 @@
 # 25 — 從 Maya 直接投遞
 
-正式做法整理在 [`notes/deploy/03-工作站.md`](../deploy/03-工作站.md) 第六節，本篇是評估與實測紀錄。
+正式做法整理在 [`notes/deploy/03-工作站.md` 第六節](../deploy/03-工作站.md#六從-maya-直接投遞)，本篇是評估與實測紀錄。
 
 ---
 
@@ -149,7 +149,7 @@ Error: makeCameraRenderable.mel line 34: Camera [None] does not exist.
 
 CueSubmit 的相機選單沒有選擇時，按鈕上顯示 `[None]`，而 `InMayaSettings.getCommandData()`
 直接把按鈕文字當成相機名稱。選了多台時則會送出 `-cam a, b`，同樣無法解析。
-先前以程式測試時有選相機，所以沒有發現。見 [`05`](05-可回饋上游的問題.md) 第 22 項。
+先前以程式測試時有選相機，所以沒有發現。見 [`05` 第 22 項](05-可回饋上游的問題.md#22-cuesubmit-的-maya-相機選擇會送出錯誤的--cam)。
 
 **修正**（`opencue_maya_submit.py` 的 `MayaSettings`）：
 

@@ -12,12 +12,12 @@
 
 ## 使用的 stack 檔
 
-`notes/deploy/server/opencue.portainer.yml`，與上游 compose 的差異：
+[`notes/deploy/server/opencue.portainer.yml`](../deploy/server/opencue.portainer.yml)，與上游 compose 的差異：
 
 1. **完全不用 `build:`**，只用 `image:`
 2. **不含 `rqd`** —— 宿主不算圖
 3. **PostgreSQL 不 publish 5432**
-4. 所有可變參數走環境變數（見 `notes/deploy/server/env.example`）
+4. 所有可變參數走環境變數（見 [`notes/deploy/server/env.example`](../deploy/server/env.example)）
 5. 明確命名 network（`opencue`）與 volume（`opencue-db-data`）
 6. 加上記憶體上限
 

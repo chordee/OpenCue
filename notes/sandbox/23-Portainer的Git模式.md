@@ -16,11 +16,9 @@ yml 裡明確指定了 `container_name`、network 名稱與 volume 名稱，
 
 ### 做法：停止舊 stack，而不是刪除
 
-```
-1. 備份 DB（見 notes/deploy/04 第二節）
+1. 備份 DB（見 [`notes/deploy/04` 第二節](../deploy/04-維運.md#二db-備份與還原)）
 2. 舊 stack → Stop
 3. 新增 Git stack（名稱不能與舊的相同）
-```
 
 **Stop 的行為**（實測）：容器被移除，**volume 全部保留**，stack 定義也還在，
 隨時可以重新 Start。比 Delete 安全，需要時可以退回。
@@ -45,7 +43,7 @@ Portainer UI：Stacks → Add stack → Build method 選 **Repository**：
 |---|---|
 | Repository URL | `https://github.com/chordee/OpenCue` |
 | Repository reference | `refs/heads/studio/main` |
-| Compose path | `notes/deploy/server/opencue.portainer.yml` |
+| Compose path | [`notes/deploy/server/opencue.portainer.yml`](../deploy/server/opencue.portainer.yml) |
 | Authentication | 關閉（公開 repo） |
 | Environment variables | 與 Web editor 版相同 |
 
@@ -206,4 +204,4 @@ studio/release    Portainer 只追蹤這個分支
 
 ### 修改 yml 的情況
 
-已補測：只修改 Cuebot 的啟動參數時，只有 Cuebot 被重建。見 [`24`](24-派工行為與監控.md) 第三節。
+已補測：只修改 Cuebot 的啟動參數時，只有 Cuebot 被重建。見 [`24` 第三節](24-派工行為與監控.md#三portainer-git-模式修改-yml-只重建該服務)。

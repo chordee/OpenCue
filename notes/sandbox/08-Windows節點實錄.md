@@ -63,7 +63,7 @@ dependencies = [
 設定檔位置（`rqconstants.py:145`）：`%LOCALAPPDATA%\OpenCue\rqd.conf`，
 也可用 `RQD_CONFIG_FILE` 環境變數或 `-c` 參數指定。
 
-範本見 `notes/deploy/node/rqd-windows.conf`。關鍵三項：
+範本見 [`notes/deploy/node/rqd-windows.conf`](../deploy/node/rqd-windows.conf)。關鍵三項：
 
 | 設定 | 值 | 說明 |
 |---|---|---|
@@ -88,7 +88,7 @@ docker exec opencue-cuebot getent hosts host.docker.internal
   → 192.168.65.254
 ```
 
-所以 frame 派不出去（症狀與 [`04`](04-部署過程.md) 的坑 #3 相同）。
+所以 frame 派不出去（症狀與 [`04` 的坑 #3](04-部署過程.md#坑-3rqd-回報-ipv6-位址cuebot-無法回連) 相同）。
 
 **修法**：改用**單段**的實際主機名稱，並在 cuebot 服務加 `extra_hosts`：
 
@@ -143,7 +143,7 @@ logDestination  /tmp/rqd/logs/testing/testshot/logs/<job>--<id>\<job>.<frame>.rq
 前半是 Linux 斜線、後半是 Windows 反斜線。
 
 **正式環境必須**：把 `CUE_FRAME_LOG_DIR` 設成所有節點都寫得到的共享儲存路徑
-（**frame log 要用 UNC 正斜線**，因為 CueWeb 在 Linux 容器裡也要讀它；其他路徑可用磁碟機代號，見 [`11`](11-正式部署風險與待辦.md) 第 2 點），而不是留著預設的 `/tmp/rqd/logs`。
+（**frame log 要用 UNC 正斜線**，因為 CueWeb 在 Linux 容器裡也要讀它；其他路徑可用磁碟機代號，見 [`11` 第 2 點](11-正式部署風險與待辦.md#2-網路磁碟機代號可用但有一個例外)），而不是留著預設的 `/tmp/rqd/logs`。
 
 ### 坑 #8：PATH 污染（自己造成的，但值得記）
 
@@ -236,7 +236,7 @@ cwd  C:\Users\chordee\AppData\Local\Temp/testing-testshot-.../0001-test_layer
 
 ## 以包裝腳本啟動（解決坑 #7、#8）
 
-建立 `C:\opencue\rqd-start.bat`（範本在 `notes/deploy/node/rqd-start.bat`）：
+建立 `C:\opencue\rqd-start.bat`（範本在 [`notes/deploy/node/rqd-start.bat`](../deploy/node/rqd-start.bat)）：
 
 ```bat
 @echo off
@@ -262,7 +262,7 @@ set RQD_CONFIG_FILE=C:\opencue\rqd.conf
 CUE_FRAME_LOG_DIR=C:/opencue/logs
 ```
 
-（已更新到 `notes/deploy/server/env.example`，並透過 Portainer API 套用到 stack。）
+（已更新到 [`notes/deploy/server/env.example`](../deploy/server/env.example)，並透過 Portainer API 套用到 stack。）
 
 驗證：
 
@@ -388,8 +388,8 @@ cwd  C:\Users\chordee\AppData\Local\Temp/<job>/<frame>
 
 範本檔已備妥，只差實際安裝：
 
-- `notes/deploy/node/rqd-start.bat` —— 包裝腳本
-- `notes/deploy/node/rqd-start-hidden.vbs` —— 隱藏視窗啟動
+- [`notes/deploy/node/rqd-start.bat`](../deploy/node/rqd-start.bat) —— 包裝腳本
+- [`notes/deploy/node/rqd-start-hidden.vbs`](../deploy/node/rqd-start-hidden.vbs) —— 隱藏視窗啟動
 
 **正式環境的建議**：artist 工作站不要用 Windows 服務。
 真正的系統服務跑在 session 0，**看不到使用者的鍵鼠輸入**，NIMBY 會失效。

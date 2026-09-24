@@ -44,7 +44,7 @@ CueWeb 是 Next.js，**build 時 Node 會吃掉數 GB 記憶體** ——
 
 ## Stack 設計
 
-加進 `notes/deploy/server/opencue.portainer.yml` 的兩個服務，幾個刻意的決定：
+加進 [`notes/deploy/server/opencue.portainer.yml`](../deploy/server/opencue.portainer.yml) 的兩個服務，幾個刻意的決定：
 
 ### REST Gateway 不對外 publish
 
@@ -190,7 +190,7 @@ CUE_FRAME_LOG_DIR=//fileserver/opencue/logs
 
 **同一個路徑字串在兩個平台都成立。**
 
-這也再次佐證 [`11`](11-正式部署風險與待辦.md) 第 2 點「一律使用 UNC」的規範 ——
+這也再次佐證 [`11` 第 2 點](11-正式部署風險與待辦.md#2-網路磁碟機代號可用但有一個例外)「一律使用 UNC」的規範 ——
 它不只是為了可靠性，**更是跨平台 frame log 能運作的必要條件**。
 
 ### 尚未驗證
@@ -458,7 +458,7 @@ CueWeb 內建投遞頁面（`app/cuesubmit/page.tsx`），**不需要安裝桌�
 **Username 要填什麼**：填**實際會在 render node 上被建立的使用者名稱**。
 
 這個值會成為 job 的 `str_user`，而 **RQD 會拿它去建立同名使用者**
-（見 [`04`](04-部署過程.md) 坑 #4）。填一個節點上沒處理過的名字，
+（見 [`04` 坑 #4](04-部署過程.md#坑-4rqd-建立使用者失敗uid-衝突)）。填一個節點上沒處理過的名字，
 在 Linux 節點會觸發 `useradd` 失敗導致 frame 被 abort。
 
 **Layer Info**
@@ -565,5 +565,5 @@ dispatcher.oom_max_safe_used_swap_memory_threshold=0.05
 | 混合作業系統 | **不適用** —— 無法指定 OS |
 
 **本專案屬於「多版本 DCC」**，所以正式投遞應使用 pyoutline 腳本
-（`notes/sandbox/lab/submit_dcc.py`）或 DCC 內嵌外掛，
+（[`notes/sandbox/lab/submit_dcc.py`](lab/submit_dcc.py)）或 DCC 內嵌外掛，
 CueWeb 的投遞頁面適合臨時測試或簡單工作。
