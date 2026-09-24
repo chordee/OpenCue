@@ -779,7 +779,7 @@ Windows 那個 DEAD 是**預期內的**：`/bin/sleep` 在 Windows 上不存在�
 「每台機器 DCC 裝在不同位置」，但目前只在一台機器上驗證過。
 
 **這些應列為正式部署第一台 Windows 節點的驗收項目**
-（見 [`18`](18-三種角色的準備清單.md) 的部署順序）。只要找到任何一台閒置的實體 Windows 機器，
+（見 [`notes/deploy/README.md` 的部署順序](../deploy/README.md#部署順序)）。只要找到任何一台閒置的實體 Windows 機器，
 即使不裝 DCC，也能驗證前四項最容易出事的部分。
 
 ## 跨平台的 log 路徑對應（per-OS frame log root）
