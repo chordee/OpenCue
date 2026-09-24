@@ -1,0 +1,5 @@
+{
+    "env": [
+        {"PYTHONPATH": {"value": "P:/pipeline/opencue/client/houdini", "method": "append"}}
+    ]
+}
