@@ -168,6 +168,33 @@ image 升級可能帶來 DB migration（只能往前），升級前要先備份�
 （`${OPENCUE_CUEBOT_IMAGE:-ghcr.io/...:1.34.4-xxxx}`）並從 Portainer 移除該變數，
 但不建議。
 
+---
+
+## 四、正式環境追蹤專用分支 `studio/release`
+
+### 問題
+
+1 分鐘的輪詢本身開銷很小（沒有變動就什麼都不做），但**追蹤 `studio/main` 時，
+任何 push 都會上線**。筆記、測試腳本、正式設定都在同一個分支，
+寫錯的 yml 被 push 上去，幾分鐘內正式環境就會用它重新部署。
+
+### 做法
+
+```
+studio/main       日常工作，push 不影響正式環境
+    │  確認後 merge --ff-only
+    ▼
+studio/release    Portainer 只追蹤這個分支
+```
+
+把 stack 的 reference 改成 `refs/heads/studio/release`
+（`POST /api/stacks/{id}/git`，更新 `repositoryReferenceName`）。
+切換 reference 本身不會重啟服務（實測 Cuebot 啟動時間未變）。
+
+### 實測
+
+（測試中）
+
 ### 尚未測試
 
 - 修改 yml 中服務的實際設定（例如資源上限）後，是否只重建那一個服務。
