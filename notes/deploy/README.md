@@ -120,9 +120,11 @@ notes/deploy/
     rqd-windows.conf            → C:\opencue\rqd.conf
     rqd-start.bat               → C:\opencue\rqd-start.bat
     rqd-start-hidden.vbs        工作站登入時啟動用
-    hython-22.0.429.bat 等      → C:\opencue\bin\，DCC wrapper
+    hython-22.0.429.bat 等      → C:\opencue\bin\，DCC wrapper（給投遞腳本用）
+    Render-2027.bat             → C:\opencue\bin\，Maya 轉接 wrapper（給 Maya 內投遞用）
     cuenimby-workstation.json   → %USERPROFILE%\.config\opencue\cuenimby.json
 
   client/
     opencue-client.yaml         → %APPDATA%\opencue\opencue.yaml
+    maya/                       → C:\opencue\client\maya\，從 Maya 直接投遞的工具
 ```

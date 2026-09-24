@@ -1,0 +1,144 @@
+# 25 — 從 Maya 直接投遞
+
+正式做法整理在 `notes/deploy/03-工作站.md` 第六節，本篇是評估與實測紀錄。
+
+---
+
+## 一、repo 裡現有的外掛
+
+| DCC | 位置 | 運作方式 |
+|---|---|---|
+| Maya | `cuesubmit/plugins/maya/` | shelf 按鈕，把 CueSubmit 的介面**跑在 Maya 自己的 Python 裡** |
+| Nuke | `cuesubmit/plugins/nuke/` | Nuke 只收集檔名與 Write 節點，另外以 `CUE_PYTHON_BIN` 開一個外部 Python 顯示介面 |
+| Houdini / Blender | 無 | — |
+
+Nuke 外掛採外部 Python 的原因寫在 `CueNukeSubmitLauncher.py` 的註解：
+Nuke 內建的 gRPC 版本與 OpenCue 衝突。
+
+### 算圖指令的組成（`cuesubmit/Submission.py`）
+
+```
+Maya：{MAYA_RENDER_CMD} -r file -s #FRAME_START# -e #FRAME_END# [-cam 相機] 場景
+Nuke：{NUKE_RENDER_CMD} -F #IFRAME# [-X Write節點] -x 場景
+```
+
+`MAYA_RENDER_CMD` 預設是 `Render`，可以在 `cuesubmit.yaml` 設定（`CUESUBMIT_CONFIG_FILE`
+或 `%APPDATA%\opencue\cuesubmit.yaml`）。一個設定檔只能指定一個值。
+
+指令先組成字串，再以 `command.split()` 切成串列，**路徑含空白時加引號也無效**（`17` 場景 24）。
+
+---
+
+## 二、與現有設計的落差
+
+### 1. DCC 內建的 Python 版本
+
+| DCC | 內建 Python（實測） |
+|---|---|
+| Maya 2027 | **3.13.9** |
+| Houdini 22.0.429 | **3.13.10** |
+| Nuke 17.0v1 | 3.11.11 |
+| OpenCue venv | 3.11.9（grpcio 1.84.0） |
+
+repo 的 Maya 外掛要求 opencue 套件（含需編譯的 grpcio）能在 Maya 的 Python 裡 import。
+Maya 2027 與 venv 版本不同，**要另外安裝一份**；有多個 Maya 版本並存時，每個版本都要各裝一份，
+越舊的版本越可能找不到相容的 grpcio。
+
+### 2. 指令格式與現有 wrapper 不同
+
+`maya-render-2027.bat` 吃的是 `場景 輸出目錄 算圖器`，frame 取自 `CUE_IFRAME`；
+CueSubmit 送的是 `Render.exe` 原生的參數。所以另外做了轉接用的 `Render-2027.bat`，
+把參數原封不動轉給 `Render.exe`。
+
+### 3. Cuebot 內建的 `maya` service
+
+```
+maya          tags=general | desktop
+maya2027      tags=maya_2027
+```
+
+artist 若在介面上選了內建的 `maya`，版本綁定就失效（tag 比對是「或」，`general` 什麼節點都對得上）。
+
+---
+
+## 三、做法：兩段式
+
+比照 Nuke 外掛，把「收集資訊」和「投遞介面」拆開：
+
+| 檔案 | 執行環境 | 內容 |
+|---|---|---|
+| `opencue_maya_launcher.py` | Maya 內，任何版本 | 只用 `maya.cmds` 與 `subprocess`：場景、相機、frame 範圍、`about -version` |
+| `opencue_maya_submit.py` | `C:\opencue\venv` | CueSubmit 介面，依版本設定 `Render-<版本>.bat` 與 service `maya<版本>` |
+
+幾個細節：
+
+- CueSubmit 的 `InMayaSettings`（在 Maya 內顯示的設定面板）**完全沒有用到 Maya API**，
+  只是接收檔名與相機清單的 Qt 元件，所以可以在 Maya 之外使用
+- `Constants.MAYA_RENDER_CMD` 是在投遞時才被讀取，啟動後改寫它即可指定版本
+- 從 Maya 啟動子程序會繼承 Maya 的環境變數。實測 mayapy 會帶 `PYTHONPATH` 與 `QT_PLUGIN_PATH`，
+  指向 Maya 自己的 Python 3.13 與 Qt，venv 讀到會出錯，所以啟動前清掉
+  `PYTHON*`、`QT_*`、`QTDIR`、`PYSIDE*` 開頭的變數
+- 用 `Popen` 啟動後**不等待**，避免像 Nuke 外掛那樣讓 DCC 卡住
+- 啟動器的語法相容 Python 2.7（不用 f-string），讓舊版 Maya 也能用
+
+---
+
+## 四、實測
+
+### 1. Maya 端不依賴 opencue 套件
+
+在 mayapy 2027 中開啟 `C:\opencue\scenes\test.ma`：
+
+```
+opencue importable in mayapy: NO
+version: 2027
+range: 1-10
+command: [...pythonw.exe, ...opencue_maya_submit.py, --file, C:/opencue/scenes/test.ma,
+          --version, 2027, --range, 1-10, --cameras, front, persp, renderCam1, side, top]
+env removed: ['PYTHONPATH', 'QT_PLUGIN_PATH']
+```
+
+mayapy 裡**無法 import opencue**，啟動器照常運作。
+
+### 2. 從 Maya 的環境啟動投遞介面並送出
+
+由 mayapy 以清理過的環境啟動 venv 的 Python，Qt 使用 offscreen 模式，
+以程式填入 job 名稱、shot、layer 名稱與相機後按下送出（模擬 artist 操作）：
+
+```
+show     : testing                     ← 取自環境變數 PROJECT
+services : ['maya2027']                ← 依版本自動選好
+range    : 1-10
+built    : C:/opencue/bin/Render-2027.bat -r file -s #FRAME_START# -e #FRAME_END#
+           -cam renderCam1 C:/opencue/scenes/test.ma
+submitted
+```
+
+### 3. 算圖結果
+
+| 項目 | 結果 |
+|---|---|
+| frame | 10 / 10 SUCCEEDED |
+| 節點 | 全部在 LAPTOP（layer tag `maya_2027` 來自 service） |
+| 每格耗時 | 平均 34.5 秒 |
+| frame 編號 | 正確替換，例如第 5 格 `-s 5 -e 5` |
+
+### 4. 輸出位置
+
+```
+Finished Rendering C:/Users/chordee/Documents/maya/projects/default/images/test.0005.png.
+```
+
+指令沒有 `-rd`，輸出位置由場景所屬的 Maya project 決定。測試場景不在任何 project 裡，
+圖檔落在**算圖節點本機**的預設 project。正式環境的場景必須放在有 `workspace.mel` 的 project 中。
+
+---
+
+## 五、尚未驗證
+
+| 項目 | 說明 |
+|---|---|
+| 在 Maya 介面中點 shelf 按鈕 | 需要人工操作。本次以 offscreen 模式與程式操作模擬 |
+| 舊版 Maya | 本機只有 2027；語法相容 Python 2.7，但未實際執行 |
+| Nuke 外掛 | 未安裝 |
+| Houdini | 沒有現成外掛，未製作 |
