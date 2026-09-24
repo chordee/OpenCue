@@ -78,6 +78,11 @@ services:
       --datasource.cue-data-source.password=${POSTGRES_PASSWORD:?必須設定}
       --log.frame-log-root.Windows=${FRAME_LOG_ROOT_WINDOWS:-${CUE_FRAME_LOG_DIR}}
       --log.frame-log-root.debian=${FRAME_LOG_ROOT_LINUX:-${CUE_FRAME_LOG_DIR}}
+      --metrics.prometheus.collector=${CUEBOT_METRICS_COLLECTOR:-false}
+    # 【監控】/metrics（port 8080，只在容器網路內）預設就有 frame、job、host 回報等
+    # 基本指標。CUEBOT_METRICS_COLLECTOR=true 才會多出排程佇列的健康指標，
+    # 上游 Grafana 的 Cuebot 儀表板全部依賴這些指標。見 monitoring.portainer.yml。
+    #
     # 【節點名稱解析】Cuebot 會把 RQD 回報的名稱截成第一段（FQDN 的第一個 label），
     # 再用它回連 8444，所以那個短名稱必須在「Cuebot 容器內」解析得到。
     #
