@@ -114,6 +114,7 @@ notes/deploy/
     site.example.yml            DNS / 多台 extra_hosts 等站點設定
     init/                       初始化容器的原始碼
     registry.portainer.yml      自建 registry（使用 GHCR 時不需要）
+    monitoring.portainer.yml    選用的監控 stack（Prometheus + Grafana）
 
   node/                         全部是純 ASCII（原因見 02）
     rqd-windows.conf            → C:\opencue\rqd.conf
