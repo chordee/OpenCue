@@ -37,6 +37,9 @@ REM Frames must see the same environment on every node, regardless of how
 REM RQD was started.
 set PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
 set PATH=%PATH%;%SystemRoot%\System32\WindowsPowerShell\v1.0
+REM Frames inherit this PATH (RQD_USE_PATH_ENV_VAR = 1 in rqd.conf), so job
+REM commands can call ocrun without an OS-specific path.
+set PATH=%PATH%;%OPENCUE_VENV%\Scripts
 
 REM RQD passes TMP to frames but not TEMP. Several DCC applications read TEMP
 REM only, and fall back to a hardcoded path when it is missing (Nuke tries

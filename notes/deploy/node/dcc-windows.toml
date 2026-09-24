@@ -1,0 +1,31 @@
+# ============================================================================
+#  ocrun config - which DCC versions THIS machine has, and where
+#  ASCII ONLY. Copy to C:\opencue\dcc.toml (Linux: /opt/opencue/dcc.toml).
+#
+#  Job commands name a product and a version, never an install path:
+#      ocrun maya 2027 Render -r file -s #IFRAME# -e #IFRAME# P:/proj/scene.ma
+#  ocrun looks the version up here and runs the program from that directory.
+#
+#  List only the versions actually installed on this machine, and advertise
+#  the same versions through RQD_TAGS in rqd.conf.
+#
+#  Paths use single quotes (TOML literal strings), so backslashes stay as-is.
+# ============================================================================
+
+# Environment for every DCC. RQD does NOT pass the interactive user's
+# environment to frames, so license servers must be set here.
+[env]
+# ADSKFLEX_LICENSE_FILE = '@license-server.studio.local'
+# foundry_LICENSE = '4101@license-server.studio.local'
+# solidangle_LICENSE = '5053@license-server.studio.local'
+
+# version = directory that holds the program
+# EDIT: install locations on THIS machine.
+[maya]
+'2027' = 'C:\Program Files\Autodesk\Maya2027\bin'
+
+[houdini]
+'22.0.429' = 'C:\Program Files\Side Effects Software\Houdini 22.0.429\bin'
+
+[nuke]
+'17.0v1' = 'C:\Program Files\Nuke17.0v1'

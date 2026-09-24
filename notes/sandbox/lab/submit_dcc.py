@@ -4,9 +4,10 @@
 設計要點見 notes/sandbox/12-Houdini真實算圖.md：
 
 1. 指令以「串列」形式傳入，避免 shlex 吃掉 Windows 路徑的反斜線
-2. 呼叫每台節點相同路徑的包裝腳本，不寫死 DCC 安裝位置
+2. 以 ocrun <產品> <版本> <程式> 呼叫 DCC，安裝位置由各節點的 dcc.toml 決定
+   （notes/sandbox/26-ocrun取代wrapper.md）
 3. 用 layer tag 綁定 DCC 版本，Cuebot 只派給真的裝了該版本的節點
-4. frame 編號由 RQD 注入的 CUE_IFRAME 傳遞，指令本身與 frame 無關
+4. frame 編號由 Cuebot 的 #IFRAME# token 或 RQD 注入的 CUE_IFRAME 傳遞
 
 用法：
     python submit_dcc.py houdini --frames 1-4
@@ -20,13 +21,11 @@ import outline
 import outline.cuerun
 from outline.modules.shell import Shell
 
-BIN = "C:/opencue/bin"
-
 PRESETS = {
     "houdini": {
         "version": "22_0_429",
         "tag": "houdini_22_0_429",
-        "command": [BIN + "/hython-22.0.429.bat",
+        "command": ["ocrun", "houdini", "22.0.429", "hython",
                     "C:/opencue/scripts/houdini_render_frame.py"],
         "env": {"OPENCUE_RENDER_OUT": "C:/opencue/render",
                 "OPENCUE_RENDERER": "karma"},
@@ -34,16 +33,16 @@ PRESETS = {
     "maya": {
         "version": "2027",
         "tag": "maya_2027",
-        "command": [BIN + "/maya-render-2027.bat",
-                    "C:/opencue/scenes/test.ma",
-                    "C:/opencue/render/maya",
-                    "sw"],
+        "command": ["ocrun", "maya", "2027", "Render",
+                    "-r", "sw", "-s", "#IFRAME#", "-e", "#IFRAME#",
+                    "-rd", "C:/opencue/render/maya",
+                    "C:/opencue/scenes/test.ma"],
         "env": {},
     },
     "nuke": {
         "version": "17_0v1",
         "tag": "nuke_17_0v1",
-        "command": [BIN + "/nuke-17.0v1.bat",
+        "command": ["ocrun", "nuke", "17.0v1", "Nuke17.0", "-t",
                     "C:/opencue/scripts/nuke_render_frame.py"],
         "env": {"OPENCUE_RENDER_OUT": "C:/opencue/render/nuke"},
     },

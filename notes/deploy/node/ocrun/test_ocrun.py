@@ -1,0 +1,69 @@
+"""python -m unittest test_ocrun   (run inside this directory)"""
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
+
+import ocrun
+
+BINDIR = os.path.dirname(sys.executable)
+PROGRAM = os.path.splitext(os.path.basename(sys.executable))[0]
+
+
+class OcrunTest(unittest.TestCase):
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        config = os.path.join(self.tmp, "dcc.toml")
+        with open(config, "w") as f:
+            f.write('[env]\nSTUDIO_LICENSE = "5053@lic"\n'
+                    "[maya]\n\"2027\" = '%s'\n" % BINDIR)
+        os.environ["OPENCUE_DCC_CONFIG"] = config
+        os.environ["TMP"] = self.tmp
+        os.environ.pop("TEMP", None)
+
+    def run_py(self, code, product="maya"):
+        out = os.path.join(self.tmp, "out.txt")
+        rc = ocrun.main([product, "2027", PROGRAM, "-c",
+                         "import os,sys\nopen(sys.argv[1],'w').write(repr(%s))" % code,
+                         out])
+        with open(out) as f:
+            return rc, f.read()
+
+    def test_runs_program_and_returns_exit_code(self):
+        rc = ocrun.main(["maya", "2027", PROGRAM, "-c", "import sys; sys.exit(3)"])
+        self.assertEqual(rc, 3)
+
+    def test_environment(self):
+        rc, env = self.run_py("{k: os.environ.get(k) for k in "
+                              "['MAYA_DISABLE_CER', 'STUDIO_LICENSE', 'TEMP']}")
+        self.assertEqual(rc, 0)
+        self.assertEqual(eval(env), {"MAYA_DISABLE_CER": "1",
+                                     "STUDIO_LICENSE": "5053@lic",
+                                     "TEMP": self.tmp})
+
+    def test_arguments_with_spaces_pass_through(self):
+        out = os.path.join(self.tmp, "a b.txt")
+        rc = ocrun.main(["maya", "2027", PROGRAM, "-c",
+                         "import sys; open(sys.argv[1], 'w').write(sys.argv[2])",
+                         out, "x y"])
+        with open(out) as f:
+            self.assertEqual(f.read(), "x y")
+
+    def test_unknown_version_or_program(self):
+        self.assertEqual(ocrun.main(["maya", "2024", PROGRAM]), 127)
+        self.assertEqual(ocrun.main(["houdini", "22.0.429", "hython"]), 127)
+        self.assertEqual(ocrun.main(["maya", "2027", "no_such_program"]), 127)
+
+    def test_console_script(self):
+        # Runs the same way through the installed entry point, when present.
+        exe = os.path.join(BINDIR, "ocrun")
+        if not (os.path.exists(exe) or os.path.exists(exe + ".exe")):
+            self.skipTest("ocrun is not installed in this environment")
+        rc = subprocess.call([exe, "maya", "2027", PROGRAM, "-c", "import sys; sys.exit(5)"])
+        self.assertEqual(rc, 5)
+
+
+if __name__ == "__main__":
+    unittest.main()

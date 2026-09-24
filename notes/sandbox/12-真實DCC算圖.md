@@ -3,6 +3,9 @@
 先前的測試都是 `/bin/sleep` 或簡單的 Python 腳本。這一份用**真正的算圖軟體**
 跑完整流程，一次驗證多項先前只能紙上談兵的事。
 
+> 本篇使用的 DCC wrapper（`.bat`）後來已由 `ocrun` 取代，見 [`26`](26-ocrun取代wrapper.md)。
+> 下文的 wrapper 連結指向刪除前的版本。
+
 ## 本機的 DCC 環境
 
 偵測時注意：**預設位置找不到，實際裝在 D 槽**。
@@ -64,7 +67,7 @@ if not exist "%HB%\hython.exe" (
 exit /b %ERRORLEVEL%
 ```
 
-範本見 [`notes/deploy/node/hython-22.0.429.bat`](../deploy/node/hython-22.0.429.bat)。**必須是純 ASCII**（見 [`09` 坑 #13](09-NIMBY與混合機隊.md#坑-13bat-檔必須是純-ascii)）。
+範本見 [`notes/deploy/node/hython-22.0.429.bat`](https://github.com/chordee/OpenCue/blob/9229923c/notes/deploy/node/hython-22.0.429.bat)。**必須是純 ASCII**（見 [`09` 坑 #13](09-NIMBY與混合機隊.md#坑-13bat-檔必須是純-ascii)）。
 
 一台節點只會有它真正裝了的版本的包裝腳本。找不到執行檔時明確回傳 127，
 而不是靜默失敗。
@@ -365,7 +368,7 @@ Nuke 是 0，因為每個 frame 只跑 0.05 秒，在 10 秒的採樣間隔之�
 Render.exe -r sw -s %CUE_IFRAME% -e %CUE_IFRAME% -rd "%OUTDIR%" "%SCENE%"
 ```
 
-包裝腳本 [`notes/deploy/node/maya-render-2027.bat`](../deploy/node/maya-render-2027.bat) 的關鍵設計：**frame 由 `CUE_IFRAME`
+包裝腳本 [`notes/deploy/node/maya-render-2027.bat`](https://github.com/chordee/OpenCue/blob/9229923c/notes/deploy/node/maya-render-2027.bat) 的關鍵設計：**frame 由 `CUE_IFRAME`
 環境變數傳入**，所以 job 指令本身與 frame 無關，不需要字串代換。
 
 `-r sw`（Maya Software）不需要額外授權。Arnold 需要 MtoA 授權，未測試。
@@ -409,7 +412,7 @@ Windows 應用程式普遍讀 `TEMP`，Nuke 找不到就退回寫死的 `C:/temp
 模組搜尋路徑）不會自動出現在 frame 環境裡。
 **每個包裝腳本都應該明確設定它需要的環境**，不要假設繼承得到。
 
-修法（[`notes/deploy/node/nuke-17.0v1.bat`](../deploy/node/nuke-17.0v1.bat)）：
+修法（[`notes/deploy/node/nuke-17.0v1.bat`](https://github.com/chordee/OpenCue/blob/9229923c/notes/deploy/node/nuke-17.0v1.bat)）：
 
 ```bat
 if "%NUKE_DISK_CACHE%"=="" set NUKE_DISK_CACHE=C:\opencue\tmp\nuke

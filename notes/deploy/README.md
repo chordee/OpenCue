@@ -34,14 +34,14 @@ artist 工作站是**雙重身分**：白天是用戶端，下班後是算圖節
 
 | 放在每台機器本機 `C:\opencue\` | 放在網路空間，全公司共用 |
 |---|---|
-| `venv\`：Python、RQD、用戶端工具 | frame log（`CUE_FRAME_LOG_DIR`，UNC 共享） |
+| `venv\`：Python、RQD、`ocrun`、用戶端工具 | frame log（`CUE_FRAME_LOG_DIR`，UNC 共享） |
 | `rqd.conf`：每台的主機名稱、tag 不同 | 場景檔、算圖輸出（專案空間） |
 | `rqd-start.bat` | pipeline 工具：從 DCC 投遞的工具、算圖時呼叫的腳本 |
-| `bin\`：DCC wrapper，指向這台的安裝路徑 | |
+| `dcc.toml`：這台有哪些 DCC 版本、裝在哪 | |
 | `tmp\`：算圖暫存與快取 | |
 
 **放本機的理由**：RQD 開機就要啟動，那時網路磁碟機可能還沒就緒；從網路磁碟執行 Python
-既慢又不穩；wrapper 與設定檔的內容本來就每台不同。
+既慢又不穩；`dcc.toml` 與 `rqd.conf` 的內容本來就每台不同。
 
 **放網路的理由**：所有機器要看到同一份。pipeline 工具放網路上，更新時只改一處，
 所有工作站與節點立刻生效，不會有某台還在用舊版的情況。
@@ -88,13 +88,13 @@ pipeline 工具區的位置由工作室決定，本目錄的文件以 `P:\pipeli
 1. **OpenCue 伺服器**（[`01-伺服器.md`](01-伺服器.md)）
    - 部署 stack → 確認 8443 可連、CueWeb 打得開
 2. **一台專職算圖機**，先只做一台（[`02-算圖節點.md`](02-算圖節點.md)）
-   - 安裝 Python + RQD + winps
-   - wrapper + rqd.conf
+   - 安裝 Python + RQD + winps + ocrun
+   - dcc.toml + rqd.conf
    - 【驗證】`cueadmin -lh` 看得到這台，alloc 前綴是 local
    - 【驗證】Cuebot 容器內能解析並連到本機 8444
    - 【驗證】投一個真實算圖 job 並成功
 3. **其餘專職算圖機**
-   - 複製第 2 步的設定，只改主機名稱與 wrapper 裡的安裝路徑
+   - 複製第 2 步的設定，只改主機名稱與 `dcc.toml` 裡的安裝路徑
 4. **artist 工作站**（[`03-工作站.md`](03-工作站.md) ＋ [`02-算圖節點.md`](02-算圖節點.md)）
    - 用戶端工具 + opencue.yaml
    - 【驗證】CueGUI 看得到農場、CueSubmit 投得出 job
@@ -157,8 +157,8 @@ pipeline 工具區的位置由工作室決定，本目錄的文件以 `P:\pipeli
 | [`node/rqd-windows.conf`](node/rqd-windows.conf) | `C:\opencue\rqd.conf` | RQD 設定 |
 | [`node/rqd-start.bat`](node/rqd-start.bat) | `C:\opencue\rqd-start.bat` | 啟動腳本 |
 | [`node/rqd-start-hidden.vbs`](node/rqd-start-hidden.vbs) | 使用者的啟動資料夾 | 工作站登入時啟動用 |
-| [`node/hython-22.0.429.bat`](node/hython-22.0.429.bat) 等 | `C:\opencue\bin\` | DCC wrapper（給投遞腳本用） |
-| [`node/Render-2027.bat`](node/Render-2027.bat) | `C:\opencue\bin\` | Maya 轉接 wrapper（給從 Maya 投遞用） |
+| [`node/dcc-windows.toml`](node/dcc-windows.toml) | `C:\opencue\dcc.toml` | 本機的 DCC 版本與安裝路徑 |
+| [`node/ocrun/`](node/ocrun/) | 以 pip 安裝進 venv | job 呼叫 DCC 的指令 `ocrun`（Windows / Linux 共用） |
 | [`node/cuenimby-workstation.json`](node/cuenimby-workstation.json) | `%USERPROFILE%\.config\opencue\cuenimby.json` | CueNIMBY 排程 |
 
 ### `client/`：工作站

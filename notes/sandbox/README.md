@@ -51,6 +51,7 @@
 | [`23-Portainer的Git模式.md`](23-Portainer的Git模式.md) | stack 直接指向 GitHub、三種更新方式的實測（手動 / 輪詢 / webhook） |
 | [`24-派工行為與監控.md`](24-派工行為與監控.md) | 雙角色派工、鎖定時正在跑的 frame、500 frame、Prometheus / Grafana、Loki 評估 |
 | [`25-Maya內投遞.md`](25-Maya內投遞.md) | repo 外掛的限制（DCC 內建 Python 版本、指令格式）、兩段式投遞工具的實測 |
+| [`26-ocrun取代wrapper.md`](26-ocrun取代wrapper.md) | 以 Python 的 `ocrun` 取代每個 DCC 版本一支的 `.bat` wrapper，為加入 Linux 節點預作準備 |
 | [`lab/`](lab/) | 測試用的腳本（投遞、算圖、磁碟機測試）與本機 sandbox 的環境變數紀錄 |
 
 ## 閱讀建議（依工作角色導讀）

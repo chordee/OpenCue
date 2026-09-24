@@ -9,9 +9,8 @@
    當成跳脫字元吃掉。傳串列就完全繞過這個問題。
 
 2. **不寫死 DCC 安裝路徑**
-   指令呼叫的是每台節點都放在相同位置的包裝腳本
-   C:\opencue\bin\hython-<version>.bat，由它去指向本機實際的安裝位置。
-   不同機器裝在不同磁碟機也沒關係。
+   指令是 ocrun houdini <version> hython ...，ocrun 從每台節點的
+   dcc.toml 查出本機實際的安裝位置。不同機器裝在不同磁碟機也沒關係。
 
 3. **用 layer tag 綁定 DCC 版本**
    節點透過 RQD_TAGS 廣告自己裝了哪些版本，job 用對應的 tag 要求，
@@ -37,7 +36,6 @@ def main():
     ap.add_argument("--frames", default="1-4", help="frame range, e.g. 1-4")
     ap.add_argument("--version", default="22_0_429",
                     help="Houdini version tag suffix, e.g. 22_0_429")
-    ap.add_argument("--wrapper-dir", default="C:/opencue/bin")
     ap.add_argument("--script", default="C:/opencue/scripts/houdini_render_frame.py")
     ap.add_argument("--out", default="C:/opencue/render",
                     help="算圖輸出目錄。正式環境應為共享儲存的 UNC 路徑")
@@ -46,13 +44,12 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
-    # 版本 tag 的點號在檔名裡是點、在 tag 裡是底線
+    # 版本號在 ocrun 裡是點、在 tag 裡是底線
     dotted = args.version.replace("_", ".")
-    wrapper = "%s/hython-%s.bat" % (args.wrapper_dir, dotted)
     version_tag = "houdini_%s" % args.version
 
     # 【重點】串列形式，不是字串
-    command = [wrapper, args.script]
+    command = ["ocrun", "houdini", dotted, "hython", args.script]
 
     layer = Shell(
         "houdini_render",

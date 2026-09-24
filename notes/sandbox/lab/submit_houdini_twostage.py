@@ -21,7 +21,6 @@ import outline
 import outline.cuerun
 from outline.modules.shell import Shell
 
-BIN = "C:/opencue/bin"
 VERSION = "22.0.429"
 VERSION_TAG = "houdini_22_0_429"
 
@@ -45,7 +44,7 @@ def main():
     # 階段 1：匯出 USD。只有一個 frame。
     stage1 = Shell(
         "export_usd",
-        command=["%s/hython-%s.bat" % (BIN, VERSION),
+        command=["ocrun", "houdini", VERSION, "hython",
                  "C:/opencue/scripts/stage1_export_usd.py"],
         range="1-1",
         tags=[VERSION_TAG],
@@ -59,7 +58,8 @@ def main():
     # 階段 2：husk 算圖。frame 可平行。
     stage2 = Shell(
         "husk_render",
-        command=["%s/husk-%s.bat" % (BIN, VERSION), args.usd, args.out],
+        command=["ocrun", "houdini", VERSION, "husk", "--make-output-path",
+                 "-f", "#IFRAME#", "-n", "1", "-o", args.out, args.usd],
         range=args.frames,
         tags=[VERSION_TAG],
     )

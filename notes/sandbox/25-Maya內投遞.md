@@ -2,6 +2,8 @@
 
 正式做法整理在 [`notes/deploy/03-工作站.md` 第六節](../deploy/03-工作站.md#六從-maya-直接投遞)，本篇是評估與實測紀錄。
 
+> 本篇的轉接 wrapper `Render-<版本>.bat` 後來已由 `ocrun maya <版本> Render` 取代，見 [`26`](26-ocrun取代wrapper.md)。
+
 ---
 
 ## 一、repo 裡現有的外掛
