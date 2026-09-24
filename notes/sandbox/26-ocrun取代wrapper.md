@@ -158,7 +158,7 @@ RQD 在 Windows 以 `taskkill /F /T /PID` 結束整個程序樹（`rqnetwork.py:
 | 項目 | 說明 |
 |---|---|
 | 磁碟機代號 | Linux 沒有 `P:\`。指令中的路徑可以由 `ocrun` 轉換；場景檔內部引用的路徑要靠各 DCC 的機制（Maya dirmap、`HOUDINI_PATHMAP`、Nuke filename filter） |
-| 派工 | Cuebot 會比對 job 與節點的 OS（`DispatchQuery.java` 的 `str_os`）。目前的投遞規則是指定 `os="Windows"`（[`deploy/03` 第八節](../deploy/03-工作站.md#八投遞-job-時要注意的事)） |
+| 派工 | Cuebot 會比對 job 與節點的 OS（`DispatchQuery.java` 的 `str_os`）。目前的投遞規則是指定 `os="Windows"`（[`deploy/03` 第九節](../deploy/03-工作站.md#九投遞-job-時要注意的事)） |
 | frame log 位置 | 混合 OS 要分別設定 log 根目錄（[`17` 場景 21](17-故障排查與常見疏失速查.md#場景-21混合作業系統農場中job-成功但-log-找不到)） |
 | DCC 本身 | Linux 版的 DCC、外掛與授權要逐一確認 |
 

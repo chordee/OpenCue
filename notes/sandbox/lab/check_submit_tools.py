@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Maya / Houdini 投遞視窗的回歸測試。
+"""Maya / Houdini / Nuke 投遞視窗的回歸測試。
 
 兩個投遞工具依賴 CueSubmit 的內部類別與欄位（InMayaSettings、MAYA_RENDER_CMD、
 Shell layer 的 commandTextBox、CueSelectPulldown、chunkInput）。同步上游 CueSubmit
@@ -11,7 +11,7 @@ Shell layer 的 commandTextBox、CueSelectPulldown、chunkInput）。同步上�
     C:\\opencue\\venv\\Scripts\\python.exe check_submit_tools.py            只檢查，不送出
     C:\\opencue\\venv\\Scripts\\python.exe check_submit_tools.py --submit   檢查後實際送出
 
-預期值依本機 sandbox（Maya 2027、Houdini 22.0.429、service maya2027 / houdini2204）。
+預期值依本機 sandbox（Maya 2027、Houdini 22.0.429、Nuke 17.0v1、service maya2027 / houdini2204 / nuke17）。
 """
 import argparse
 import os
@@ -23,9 +23,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CLIENT = os.path.join(HERE, "..", "..", "deploy", "client")
 sys.path.insert(0, os.path.join(CLIENT, "maya"))
 sys.path.insert(0, os.path.join(CLIENT, "houdini"))
+sys.path.insert(0, os.path.join(CLIENT, "nuke"))
 
 import opencue_houdini_submit  # noqa: E402
 import opencue_maya_submit  # noqa: E402
+import opencue_nuke_submit  # noqa: E402
 from cuesubmit import Submission  # noqa: E402
 
 HIP = "C:/opencue/scenes/hou_submit_test.hip"
@@ -38,6 +40,9 @@ HOUDINI_INFO = {
          "simulation": True},
     ],
 }
+NUKE_SCRIPT = "C:/opencue/scenes/nuke_submit_test.nk"
+NUKE_INFO = {"script": NUKE_SCRIPT, "version": "17.0v1", "range": "1-5",
+             "writes": ["WriteA", "Comp.WriteB"]}
 FAILURES = []
 
 
@@ -100,6 +105,27 @@ def check_houdini(submit):
     window.close()
 
 
+def check_nuke(submit):
+    print("--- Nuke")
+    window, widget = opencue_nuke_submit.build_window(NUKE_INFO)
+    layer = fill(widget, "check_nuke_all")
+    check("service", layer.services, ["nuke17"])
+    check("range", layer.layerRange, "1-5")
+    check("command, all writes", Submission.buildLayerCommand(layer),
+          "ocrun nuke 17.0v1 Nuke17.0 -F #FRAMESPEC# -x " + NUKE_SCRIPT)
+    if submit:
+        widget.submit()
+    for action in widget.settingsWidget.writeSelector.optionsMenu.actions():
+        if action.text() == "Comp.WriteB":
+            action.trigger()
+    layer = fill(widget, "check_nuke_one")
+    check("command, one write", Submission.buildLayerCommand(layer),
+          "ocrun nuke 17.0v1 Nuke17.0 -F #FRAMESPEC# -X WriteA -x " + NUKE_SCRIPT)
+    if submit:
+        widget.submit()
+    window.close()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--submit", action="store_true", help="實際送出 job")
@@ -107,6 +133,7 @@ def main():
     app = QtWidgets.QApplication(sys.argv)  # noqa: F841
     check_maya(args.submit)
     check_houdini(args.submit)
+    check_nuke(args.submit)
     print("\n{0} failure(s)".format(len(FAILURES)))
     return 1 if FAILURES else 0
 
