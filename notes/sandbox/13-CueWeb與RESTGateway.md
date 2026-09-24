@@ -44,7 +44,7 @@ CueWeb 是 Next.js，**build 時 Node 會吃掉數 GB 記憶體** ——
 
 ## Stack 設計
 
-加進 `stack/opencue.portainer.yml` 的兩個服務，幾個刻意的決定：
+加進 `notes/deploy/server/opencue.portainer.yml` 的兩個服務，幾個刻意的決定：
 
 ### REST Gateway 不對外 publish
 
@@ -565,5 +565,5 @@ dispatcher.oom_max_safe_used_swap_memory_threshold=0.05
 | 混合作業系統 | **不適用** —— 無法指定 OS |
 
 **本專案屬於「多版本 DCC」**，所以正式投遞應使用 pyoutline 腳本
-（`stack/submit_dcc.py`）或 DCC 內嵌外掛，
+（`notes/sandbox/lab/submit_dcc.py`）或 DCC 內嵌外掛，
 CueWeb 的投遞頁面適合臨時測試或簡單工作。

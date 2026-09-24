@@ -15,5 +15,5 @@ RUN mkdir ci && echo "__version__ = '${OPENCUE_VERSION}'" > ci/generate_version_
  && rm -rf /build
 
 WORKDIR /app
-COPY notes/sandbox/stack/init/opencue_init.py ./
+COPY notes/deploy/server/init/opencue_init.py ./
 CMD ["python", "-u", "opencue_init.py"]

@@ -14,7 +14,8 @@ REM  so it starts faster than a full hython session. Use it as stage 2 of a
 REM  two-stage pipeline: stage 1 exports the USD, stage 2 renders it.
 REM ============================================================================
 
-set HFS=D:\programs\Side Effects Software\Houdini 22.0.429
+REM EDIT: install location of this version on THIS machine.
+set HFS=C:\Program Files\Side Effects Software\Houdini 22.0.429
 set HB=%HFS%\bin
 
 if not exist "%HB%\husk.exe" (

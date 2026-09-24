@@ -11,23 +11,15 @@
   若遷就 Windows，會養出一堆正式環境用不到的 workaround。
 - Repo 是 fork：`chordee/OpenCue`，測試分支 `demo/sandbox-test`。
 
-## 現成的 image
+## 本目錄與 `notes/deploy/` 的分工
 
-已經 build 好的 image 公開在 GHCR，**不需登入即可直接 pull**，部署時不必自己 build：
-
-| 元件 | image |
+| 目錄 | 內容 |
 |---|---|
-| Cuebot | `ghcr.io/chordee/opencue/cuebot:1.34.4-1d73523b` |
-| Flyway（DB migration） | `ghcr.io/chordee/opencue/flyway:1.34.4-1d73523b` |
-| REST Gateway | `ghcr.io/chordee/opencue/rest-gateway:1.34.4-1d73523b` |
-| CueWeb | `ghcr.io/chordee/opencue/cueweb:1.34.4-1d73523b` |
-| init（建立 show / service） | `ghcr.io/chordee/opencue/init:1.34.4-1d73523b` |
+| **`notes/deploy/`** | **正式部署**：只寫怎麼做，設定檔都在那裡，現成的 GHCR image 也列在那裡 |
+| `notes/sandbox/`（本目錄） | **測試紀錄**：過程、踩過的坑、原始碼依據與實測數據 |
 
-- `stack/env.example` 的預設值就是這一組，照著填環境變數即可部署（步驟見 `22`）
-- 只有 **amd64**（Intel / AMD 的 x86-64 主機）
-- CueWeb 是**不需要登入**的版本，連得到 3000 port 就能操作，請用防火牆限制來源
-- 五個 image 合計約 6 GB，第一次部署的下載時間要預留（實測見 `22`）
-- 新版本由 GitHub Actions 的 **Sandbox images** workflow 手動觸發產生，tag 會換成新的 commit SHA
+**要部署的話，從 `notes/deploy/README.md` 開始。** 本目錄是那些做法的證據，
+遇到問題或想知道「為什麼要這樣做」時再回來查。
 
 ## 筆記索引
 
@@ -51,19 +43,19 @@
 | `15-空間規劃.md` | 各項目的實測用量、成長特性與清理策略 |
 | `16-Portainer與SSH的分工.md` | 哪些工作 Portainer 做得到、哪些需要宿主權限 |
 | `17-故障排查與常見疏失速查.md` | **遇到問題先看這篇**：報錯現象 ➔ 疏失對準 ➔ 解法對照手冊 |
-| `18-三種角色的準備清單.md` | 依機器角色展開：server / workstation / render host 各要準備什麼 |
+| `18-三種角色的準備清單.md` | 依機器角色展開的準備清單（**已由 `notes/deploy/` 取代**） |
 | `19-驗證狀態總表.md` | **哪些驗過、哪些沒驗**。各篇的「尚未驗證」段落可能過時，以此為準 |
 | `20-相依性與維運操作.md` | DEPEND 狀態、chain/diamond/fan-in 實測、常用維運指令 |
 | `21-Service與資源模型.md` | Layer / Username / Facility / Service / Dependency 的關係與用途 |
 | `22-兩種部署路線.md` | **同一份 stack 兩種部署法**：Portainer（image 走 registry）或 docker compose（在宿主 build）；初始化容器 |
-| `stack/` | 可直接取用的設定檔：Portainer stack、環境變數、RQD、CueNIMBY、用戶端 |
+| `lab/` | 測試用的腳本（投遞、算圖、磁碟機測試）與本機 sandbox 的環境變數紀錄 |
 
 ## 閱讀建議（依工作角色導讀）
 
 - **想快速掌握架構與運作原理**：
   先讀 `02-目標架構.md`（含 Frame 端到端生命週期圖解）與 `03-容器說明.md`。
 - **負責部署伺服器與算圖節點**：
-  詳讀 `07-Portainer部署實錄.md`、`08-Windows節點實錄.md`、`14-Registry流程.md`，並取用 `stack/` 內的範本。
+  依 `notes/deploy/` 的步驟進行；背景細節見 `07-Portainer部署實錄.md`、`08-Windows節點實錄.md`、`14-Registry流程.md`。
 - **負責藝術家工作站與 DCC Pipeline**：
   詳讀 `09-NIMBY與混合機隊.md`、`10-Windows用戶端工具.md`、`12-真實DCC算圖.md`（Houdini/Maya/Nuke 包裝實務）。
 - **IT 網管、資安與維運規劃**：

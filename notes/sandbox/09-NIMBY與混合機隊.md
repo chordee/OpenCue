@@ -45,7 +45,7 @@ artist 無感；下班後才整台加入農場。
 設定檔位置：`~/.config/opencue/cuenimby.json`
 （Windows 上是 `C:\Users\<user>\.config\opencue\cuenimby.json`）
 
-範本見 `notes/sandbox/stack/cuenimby-workstation.json`：
+範本見 `notes/deploy/node/cuenimby-workstation.json`：
 
 ```json
 {
@@ -254,7 +254,7 @@ return "available" if desired_state == "disabled" else "disabled"
 
 ## 工作站的啟動腳本必須同時帶起 RQD 與 CueNIMBY
 
-`stack/rqd-start.bat` 一開始只啟動 `rqd.exe`，這對工作站是不完整的 ——
+`notes/deploy/node/rqd-start.bat` 一開始只啟動 `rqd.exe`，這對工作站是不完整的 ——
 沒有 CueNIMBY 就沒有時段排程，工作站會 24 小時開放。
 
 腳本已更新，用 `NODE_ROLE` 區分兩種角色：

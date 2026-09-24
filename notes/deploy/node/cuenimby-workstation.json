@@ -1,7 +1,7 @@
 {
-  "cuebot_host": "localhost",
+  "cuebot_host": "opencue-server.studio.local",
   "cuebot_port": 8443,
-  "hostname": "LAPTOP-ULJICLO8",
+  "hostname": "WS01",
   "poll_interval": 5,
   "show_notifications": true,
   "notification_duration": 5,

@@ -1,7 +1,7 @@
-# 把 notes/sandbox/stack 用到的五個自建 image build 好推到 GHCR。
+# 把 notes/deploy/server 用到的五個自建 image build 好推到 GHCR。
 # 手動觸發：Actions → Sandbox images → Run workflow。
 # 產出 ghcr.io/<owner>/opencue/<name>:<版本>-<短 SHA>，另外標一個 latest。
-# 說明見 notes/sandbox/22。
+# 說明見 notes/deploy/04-維運.md 第一節。
 
 name: Sandbox images
 
@@ -54,11 +54,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
-        working-directory: notes/sandbox/stack
+        working-directory: notes/deploy/server
         run: docker compose -f opencue.portainer.yml -f build.yml build flyway cuebot rest-gateway cueweb init
 
       - name: Push
-        working-directory: notes/sandbox/stack
+        working-directory: notes/deploy/server
         run: |
           docker compose -f opencue.portainer.yml -f build.yml push flyway cuebot rest-gateway cueweb init
           for n in flyway cuebot rest-gateway cueweb init; do

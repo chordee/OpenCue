@@ -47,6 +47,6 @@ services:
   init:
     build:
       context: ../../..
-      dockerfile: notes/sandbox/stack/init/Dockerfile
+      dockerfile: notes/deploy/server/init/Dockerfile
       args:
         - OPENCUE_VERSION=${OPENCUE_VERSION:-0.0.0}

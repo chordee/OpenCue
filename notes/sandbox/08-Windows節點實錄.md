@@ -63,7 +63,7 @@ dependencies = [
 設定檔位置（`rqconstants.py:145`）：`%LOCALAPPDATA%\OpenCue\rqd.conf`，
 也可用 `RQD_CONFIG_FILE` 環境變數或 `-c` 參數指定。
 
-範本見 `notes/sandbox/stack/rqd-windows.conf`。關鍵三項：
+範本見 `notes/deploy/node/rqd-windows.conf`。關鍵三項：
 
 | 設定 | 值 | 說明 |
 |---|---|---|
@@ -236,7 +236,7 @@ cwd  C:\Users\chordee\AppData\Local\Temp/testing-testshot-.../0001-test_layer
 
 ## 以包裝腳本啟動（解決坑 #7、#8）
 
-建立 `C:\opencue\rqd-start.bat`（範本在 `notes/sandbox/stack/rqd-start.bat`）：
+建立 `C:\opencue\rqd-start.bat`（範本在 `notes/deploy/node/rqd-start.bat`）：
 
 ```bat
 @echo off
@@ -262,7 +262,7 @@ set RQD_CONFIG_FILE=C:\opencue\rqd.conf
 CUE_FRAME_LOG_DIR=C:/opencue/logs
 ```
 
-（已更新到 `notes/sandbox/stack/env.example`，並透過 Portainer API 套用到 stack。）
+（已更新到 `notes/deploy/server/env.example`，並透過 Portainer API 套用到 stack。）
 
 驗證：
 
@@ -388,8 +388,8 @@ cwd  C:\Users\chordee\AppData\Local\Temp/<job>/<frame>
 
 範本檔已備妥，只差實際安裝：
 
-- `notes/sandbox/stack/rqd-start.bat` —— 包裝腳本
-- `notes/sandbox/stack/rqd-start-hidden.vbs` —— 隱藏視窗啟動
+- `notes/deploy/node/rqd-start.bat` —— 包裝腳本
+- `notes/deploy/node/rqd-start-hidden.vbs` —— 隱藏視窗啟動
 
 **正式環境的建議**：artist 工作站不要用 Windows 服務。
 真正的系統服務跑在 session 0，**看不到使用者的鍵鼠輸入**，NIMBY 會失效。

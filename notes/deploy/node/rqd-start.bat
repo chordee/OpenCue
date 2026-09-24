@@ -4,7 +4,7 @@ REM  OpenCue render node startup wrapper (Windows)
 REM
 REM  ASCII ONLY. cmd.exe parses .bat files using the OEM code page (e.g. CP950),
 REM  so non-ASCII comments become mojibake and can break parsing.
-REM  Chinese documentation for this file lives in notes/sandbox/08, 09 and 12.
+REM  Chinese documentation: notes/deploy/02 (evidence in notes/sandbox/08, 09, 12).
 REM
 REM  Purpose:
 REM    1. Fix the working directory, so Linux-style paths handed down by Cuebot
@@ -22,7 +22,7 @@ REM ============================================================================
 setlocal
 
 set OPENCUE_HOME=C:\opencue
-set OPENCUE_VENV=C:\Users\chordee\opencue-win-venv
+set OPENCUE_VENV=%OPENCUE_HOME%\venv
 
 REM Node role: workstation = artist machine, needs CueNIMBY scheduling
 REM            render      = dedicated render node, no CueNIMBY

@@ -27,7 +27,8 @@ REM set foundry_LICENSE=4101@license-server.studio.local
 REM set solidangle_LICENSE=5053@license-server.studio.local
 REM ---------------------------------------------------------------------------
 
-set HFS=D:\programs\Side Effects Software\Houdini 22.0.429
+REM EDIT: install location of this version on THIS machine.
+set HFS=C:\Program Files\Side Effects Software\Houdini 22.0.429
 set HB=%HFS%\bin
 
 if not exist "%HB%\hython.exe" (

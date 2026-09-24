@@ -9,7 +9,7 @@
 #   5. 明確命名 network，避免與宿主其他 stack 混淆
 #   6. 加上資源上限，避免吃掉其他服務的資源
 #
-# 兩種部署方式（詳見 notes/sandbox/22）：
+# 兩種部署方式（詳見 notes/deploy/01-伺服器.md）：
 #   A. Portainer：image 先推到 registry，Portainer 只填環境變數
 #   B. docker compose：在宿主上
 #        docker compose --env-file .env -f opencue.portainer.yml -f build.yml up -d --build
