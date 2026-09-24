@@ -1,0 +1,52 @@
+# 在 opencue.portainer.yml 之上疊加 build 設定。
+#
+# 路徑以「第一個 -f 檔案所在目錄」為基準，所以 ../../.. 就是 repo 根目錄。
+# image 名稱沿用主檔的 OPENCUE_*_IMAGE，因此 build 出來就直接帶著正確的 tag：
+#
+#   B. docker compose 路線（在宿主上直接 build 並啟動）
+#        docker compose --env-file .env -f opencue.portainer.yml -f build.yml up -d --build
+#
+#   A. Portainer 路線（在開發機 build，推到 registry，Portainer 再拉）
+#        docker compose --env-file .env -f opencue.portainer.yml -f build.yml build
+#        docker compose --env-file .env -f opencue.portainer.yml -f build.yml \
+#          push flyway cuebot rest-gateway cueweb init
+#      （push 要列出服務名稱，否則連 postgres:15.1 也會嘗試推送）
+
+services:
+  flyway:
+    build:
+      context: ../../..
+      dockerfile: sandbox/flyway.Dockerfile
+
+  cuebot:
+    build:
+      context: ../../..
+      dockerfile: cuebot/Dockerfile
+
+  rest-gateway:
+    build:
+      context: ../../..
+      dockerfile: rest_gateway/Dockerfile
+
+  cueweb:
+    build:
+      context: ../../../cueweb
+      dockerfile: Dockerfile
+      additional_contexts:
+        project_root: ../../..
+      args:
+        # NEXT_PUBLIC_* 會被烘進 image，改了要重新 build。
+        # NEXT_PUBLIC_URL 留空：瀏覽器用同源相對路徑，換部署位置不必重建。
+        - NEXT_PUBLIC_OPENCUE_ENDPOINT=http://rest-gateway:8448
+        - NEXT_PUBLIC_URL=
+        - NEXT_PUBLIC_AUTH_PROVIDER=
+        - NEXT_PUBLIC_LOG_EDITOR_URL=
+        - NEXT_PUBLIC_CUEPROGBAR_URL=
+        - NEXT_PUBLIC_PREVIEW_URL=
+
+  init:
+    build:
+      context: ../../..
+      dockerfile: notes/sandbox/stack/init/Dockerfile
+      args:
+        - OPENCUE_VERSION=${OPENCUE_VERSION:-0.0.0}

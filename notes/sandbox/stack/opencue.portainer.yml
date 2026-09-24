@@ -1,30 +1,36 @@
-# OpenCue — Portainer stack（正式環境型態）
+# OpenCue — 正式環境型態的 stack（Portainer 與 docker compose 共用這一份）
 #
 # 與 repo 根目錄的 docker-compose.yml 的差別：
-#   1. 完全不用 build:，只用 image: —— Portainer 部署 stack 時沒有 build context
+#   1. 本檔不含 build:，只用 image: —— Portainer 部署 stack 時沒有 build context。
+#      要在本機 build 時疊上同目錄的 build.yml。
 #   2. 不含 rqd —— 宿主不參與算圖，render node 是外部的 Windows 機器
 #   3. PostgreSQL 不對外 publish —— 宿主上還有其他服務，避免 port 衝突與曝險
-#   4. 所有可變參數走環境變數，由 Portainer 的 stack 環境變數提供
+#   4. 所有可變參數走環境變數，本檔本身不需要修改
 #   5. 明確命名 network，避免與宿主其他 stack 混淆
 #   6. 加上資源上限，避免吃掉其他服務的資源
 #
-# 需要的環境變數見同目錄的 env.example。
+# 兩種部署方式（詳見 notes/sandbox/22）：
+#   A. Portainer：image 先推到 registry，Portainer 只填環境變數
+#   B. docker compose：在宿主上
+#        docker compose --env-file .env -f opencue.portainer.yml -f build.yml up -d --build
+#
+# 需要的環境變數見同目錄的 env.example。標 :? 的沒填會直接報錯。
 
 services:
   db:
     image: postgres:15.1
     container_name: opencue-db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-cuebot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?必須設定}
+      POSTGRES_DB: ${POSTGRES_DB:-cuebot}
     volumes:
       - db-data:/var/lib/postgresql/data
     networks:
       - opencue
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cuebot} -d ${POSTGRES_DB:-cuebot}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -34,15 +40,15 @@ services:
           memory: 2G
 
   flyway:
-    image: ${OPENCUE_FLYWAY_IMAGE}
+    image: ${OPENCUE_FLYWAY_IMAGE:?必須設定}
     container_name: opencue-flyway
     depends_on:
       db:
         condition: service_healthy
     environment:
-      PGUSER: ${POSTGRES_USER}
-      PGPASSWORD: ${POSTGRES_PASSWORD}
-      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER:-cuebot}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?必須設定}
+      PGDATABASE: ${POSTGRES_DB:-cuebot}
       PGHOST: db
       PGPORT: 5432
     command: /opt/scripts/migrate.sh
@@ -51,7 +57,7 @@ services:
     restart: "no"
 
   cuebot:
-    image: ${OPENCUE_CUEBOT_IMAGE}
+    image: ${OPENCUE_CUEBOT_IMAGE:?必須設定}
     container_name: opencue-cuebot
     depends_on:
       db:
@@ -59,37 +65,32 @@ services:
       flyway:
         condition: service_completed_successfully
     ports:
-      - "${CUEBOT_GRPC_PORT}:8443"
+      - "${CUEBOT_GRPC_PORT:-8443}:8443"
     environment:
       # 注意：這是 frame log 的「根目錄」，實際建目錄與寫檔的是各台 render node 上
       # 的 RQD，不是 Cuebot。Cuebot 本身不掛這個路徑、也不寫入。
       # 因此這個值必須是「所有 render node 都寫得到的同一位置」。
       # Windows render node 的情況需填 UNC 路徑或一致的磁碟機代號。
-      CUE_FRAME_LOG_DIR: ${CUE_FRAME_LOG_DIR}
+      CUE_FRAME_LOG_DIR: ${CUE_FRAME_LOG_DIR:?必須設定}
     command: >-
-      --datasource.cue-data-source.jdbc-url=jdbc:postgresql://db/${POSTGRES_DB}
-      --datasource.cue-data-source.username=${POSTGRES_USER}
-      --datasource.cue-data-source.password=${POSTGRES_PASSWORD}
-      --log.frame-log-root.Windows=${FRAME_LOG_ROOT_WINDOWS}
-      --log.frame-log-root.debian=${FRAME_LOG_ROOT_LINUX}
-    # 【規模化的正解】讓容器使用公司 DNS 與網域搜尋後綴，
-    # 如此 Cuebot 解析短名稱 RENDER01 時會自動查 RENDER01.studio.local，
-    # 完全不需要維護 extra_hosts。節點數量一多，extra_hosts 就不可行。
+      --datasource.cue-data-source.jdbc-url=jdbc:postgresql://db/${POSTGRES_DB:-cuebot}
+      --datasource.cue-data-source.username=${POSTGRES_USER:-cuebot}
+      --datasource.cue-data-source.password=${POSTGRES_PASSWORD:?必須設定}
+      --log.frame-log-root.Windows=${FRAME_LOG_ROOT_WINDOWS:-${CUE_FRAME_LOG_DIR}}
+      --log.frame-log-root.debian=${FRAME_LOG_ROOT_LINUX:-${CUE_FRAME_LOG_DIR}}
+    # 【節點名稱解析】Cuebot 會把 RQD 回報的名稱截成第一段（FQDN 的第一個 label），
+    # 再用它回連 8444，所以那個短名稱必須在「Cuebot 容器內」解析得到。
     #
-    # 正式環境請取消以下兩段的註解並填入實際值，同時移除下方的 extra_hosts。
-    # 本機測試環境沒有公司 DNS 可驗證，因此預設維持註解狀態 —— 未經實測的設定
-    # 不放進預設值。
+    # 規模化的正解是 DNS：容器預設沿用宿主 /etc/resolv.conf 的 search 網域，
+    # 宿主本身能解析 RENDER01 的話，容器內通常也能，本檔不需要任何設定。
+    # 宿主解析不到時，才用 site.example.yml 疊上 dns / dns_search。
+    # 注意：不能在這裡寫 dns_search: ${DNS_SEARCH:-} —— 空值會變成空的 search，
+    # 反而把宿主繼承來的網域清掉（已實測）。
     #
-    # dns:
-    #   - 192.168.1.1          # 公司內部 DNS 伺服器
-    # dns_search:
-    #   - studio.local         # 網域名稱後綴
-    # 沒有可用 DNS 時的退路：逐台硬寫。僅適用於少量節點的測試。
-    # Cuebot 會把 RQD 回報的名稱截成第一段（FQDN 的第一個 label），再用它回連 8444，
-    # 所以那個短名稱必須在「Cuebot 容器內」解析得到。
-    # 正式環境若公司 DNS 能解析節點短名稱，這段可以不需要；否則就在這裡逐一列出。
+    # 下面這一筆是單台測試用的退路，沒設定時指向無害的占位名稱。
+    # 多台又沒有 DNS 時，改用 site.example.yml 逐台列出。
     extra_hosts:
-      - "${RENDER_NODE_NAME}:${RENDER_NODE_ADDR}"
+      - "${RENDER_NODE_NAME:-opencue-placeholder}:${RENDER_NODE_ADDR:-127.0.0.1}"
     networks:
       - opencue
     restart: unless-stopped
@@ -110,14 +111,14 @@ services:
   # 若 pipeline 要直接呼叫 REST API，再自行加上 ports 並置於反向代理後。
   # ---------------------------------------------------------------------------
   rest-gateway:
-    image: ${OPENCUE_REST_GATEWAY_IMAGE}
+    image: ${OPENCUE_REST_GATEWAY_IMAGE:?必須設定}
     container_name: opencue-rest-gateway
     depends_on:
       cuebot:
         condition: service_healthy
     environment:
       CUEBOT_ENDPOINT: cuebot:8443
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:?必須設定}
       REST_PORT: 8448
       LOG_LEVEL: info
     networks:
@@ -145,20 +146,20 @@ services:
   # 這個問題。
   # ---------------------------------------------------------------------------
   cueweb:
-    image: ${OPENCUE_CUEWEB_IMAGE}
+    image: ${OPENCUE_CUEWEB_IMAGE:?必須設定}
     container_name: opencue-cueweb
     depends_on:
       rest-gateway:
         condition: service_healthy
     ports:
-      - "${CUEWEB_PORT}:3000"
+      - "${CUEWEB_PORT:-3000}:3000"
     environment:
       NEXT_PUBLIC_OPENCUE_ENDPOINT: http://rest-gateway:8448
       NEXT_PUBLIC_URL: ""
       NEXT_PUBLIC_AUTH_PROVIDER: ""
-      NEXT_JWT_SECRET: ${JWT_SECRET}
-      NEXTAUTH_URL: ${CUEWEB_PUBLIC_URL}
-      NEXTAUTH_SECRET: ${CUEWEB_NEXTAUTH_SECRET}
+      NEXT_JWT_SECRET: ${JWT_SECRET:?必須設定}
+      NEXTAUTH_URL: ${CUEWEB_PUBLIC_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${CUEWEB_NEXTAUTH_SECRET:?必須設定}
       SENTRY_ENVIRONMENT: production
       # 兩個白名單負責不同的端點，用途不可混淆：
       #
@@ -174,16 +175,17 @@ services:
       #
       # 註：官方 sandbox 把 PREVIEW_ROOTS 指向 log 目錄，是因為它的 Blender
       #     demo 刻意把圖寫進 log 目錄。正式環境算圖輸出是獨立的共享。
-      CUEWEB_LOG_ROOTS: ${CUEWEB_LOG_ROOTS}
-      CUEWEB_PREVIEW_ROOTS: ${CUEWEB_PREVIEW_ROOTS}
+      CUEWEB_LOG_ROOTS: ${CUEWEB_LOG_ROOTS:-/mnt/logs}
+      CUEWEB_PREVIEW_ROOTS: ${CUEWEB_PREVIEW_ROOTS:-}
     volumes:
       # CueWeb 要能讀到 frame log 才顯示得出來。
       # 【注意】Cuebot 記錄的 log 路徑是「render node 寫入時的路徑」。
       # render node 是 Windows 時，那會是 Windows 路徑，Linux 容器內不存在。
       # 詳見 notes/sandbox/13。
-      - ${FRAME_LOG_MOUNT_SOURCE}:${FRAME_LOG_MOUNT_TARGET}:ro
-      # 算圖輸出。要在網頁上看縮圖預覽才需要，可留空不掛。
-      - ${RENDER_OUT_MOUNT_SOURCE}:${RENDER_OUT_MOUNT_TARGET}:ro
+      # 沒設定來源時掛一個空的 volume，CueWeb 照常啟動，只是看不到 log。
+      - ${FRAME_LOG_MOUNT_SOURCE:-cueweb-empty}:${FRAME_LOG_MOUNT_TARGET:-/mnt/logs}:ro
+      # 算圖輸出。要在網頁上看縮圖預覽才需要，沒設定時同樣掛空的 volume。
+      - ${RENDER_OUT_MOUNT_SOURCE:-cueweb-empty}:${RENDER_OUT_MOUNT_TARGET:-/mnt/render}:ro
     networks:
       - opencue
     restart: unless-stopped
@@ -198,6 +200,27 @@ services:
         limits:
           memory: 1G
 
+  # ---------------------------------------------------------------------------
+  # 部署後初始化：建立 show、subscription、service。跑完就結束，可重複執行，
+  # 已存在的項目不會修改。沒設定 OPENCUE_INIT_* 時什麼都不做。
+  # 新 show 必須有 subscription 才會被派工（DispatchQuery 的 FIND_SHOWS）。
+  # ---------------------------------------------------------------------------
+  init:
+    image: ${OPENCUE_INIT_IMAGE:?必須設定}
+    container_name: opencue-init
+    depends_on:
+      cuebot:
+        condition: service_healthy
+    environment:
+      CUEBOT_HOSTS: cuebot:8443
+      OPENCUE_INIT_SHOWS: ${OPENCUE_INIT_SHOWS:-}
+      OPENCUE_INIT_ALLOCS: ${OPENCUE_INIT_ALLOCS:-local.general,local.desktop,cloud.general}
+      OPENCUE_INIT_SUB_CORES: ${OPENCUE_INIT_SUB_CORES:-1000}
+      OPENCUE_INIT_SERVICES: ${OPENCUE_INIT_SERVICES:-}
+    networks:
+      - opencue
+    restart: "no"
+
 networks:
   opencue:
     name: opencue
@@ -205,3 +228,5 @@ networks:
 volumes:
   db-data:
     name: opencue-db-data
+  cueweb-empty:
+    name: opencue-cueweb-empty

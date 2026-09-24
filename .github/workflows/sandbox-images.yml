@@ -1,0 +1,76 @@
+# 把 notes/sandbox/stack 用到的五個自建 image build 好推到 GHCR。
+# 手動觸發：Actions → Sandbox images → Run workflow。
+# 產出 ghcr.io/<owner>/opencue/<name>:<版本>-<短 SHA>，另外標一個 latest。
+# 說明見 notes/sandbox/22。
+
+name: Sandbox images
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 版本號由 git 歷史推算
+
+      - name: Fetch origin/master
+        # 版本腳本會算 origin/master 的 commit 數；checkout 不一定會建立這個 ref
+        run: git fetch origin master:refs/remotes/origin/master
+
+      - name: Compute tag
+        run: |
+          # 非 master 分支輸出 <版本>-<短 SHA>，例如 1.34.4-e79848a8
+          TAG=$(python3 ci/generate_version_number.py)
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REG=ghcr.io/$OWNER/opencue
+          {
+            echo "TAG=$TAG"
+            echo "REG=$REG"
+            # 給 init 裡的 pip 套件用，PEP 440 只接受 1.34.4+e79848a8 這種寫法
+            echo "OPENCUE_VERSION=${TAG/-/+}"
+            echo "OPENCUE_CUEBOT_IMAGE=$REG/cuebot:$TAG"
+            echo "OPENCUE_FLYWAY_IMAGE=$REG/flyway:$TAG"
+            echo "OPENCUE_REST_GATEWAY_IMAGE=$REG/rest-gateway:$TAG"
+            echo "OPENCUE_CUEWEB_IMAGE=$REG/cueweb:$TAG"
+            echo "OPENCUE_INIT_IMAGE=$REG/init:$TAG"
+            # 主檔的必填項，build 時用不到，給占位值通過檢查
+            echo "POSTGRES_PASSWORD=unused"
+            echo "JWT_SECRET=unused"
+            echo "CUEWEB_NEXTAUTH_SECRET=unused"
+            echo "CUE_FRAME_LOG_DIR=unused"
+          } >> "$GITHUB_ENV"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build
+        working-directory: notes/sandbox/stack
+        run: docker compose -f opencue.portainer.yml -f build.yml build flyway cuebot rest-gateway cueweb init
+
+      - name: Push
+        working-directory: notes/sandbox/stack
+        run: |
+          docker compose -f opencue.portainer.yml -f build.yml push flyway cuebot rest-gateway cueweb init
+          for n in flyway cuebot rest-gateway cueweb init; do
+            docker tag "$REG/$n:$TAG" "$REG/$n:latest"
+            docker push "$REG/$n:latest"
+          done
+
+      - name: Summary
+        run: |
+          {
+            echo "### 已推送 \`$TAG\`"
+            echo '```'
+            for n in cuebot flyway rest-gateway cueweb init; do echo "$REG/$n:$TAG"; done
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -37,6 +37,7 @@
 | `19-驗證狀態總表.md` | **哪些驗過、哪些沒驗**。各篇的「尚未驗證」段落可能過時，以此為準 |
 | `20-相依性與維運操作.md` | DEPEND 狀態、chain/diamond/fan-in 實測、常用維運指令 |
 | `21-Service與資源模型.md` | Layer / Username / Facility / Service / Dependency 的關係與用途 |
+| `22-兩種部署路線.md` | **同一份 stack 兩種部署法**：Portainer（image 走 registry）或 docker compose（在宿主 build）；初始化容器 |
 | `stack/` | 可直接取用的設定檔：Portainer stack、環境變數、RQD、CueNIMBY、用戶端 |
 
 ## 閱讀建議（依工作角色導讀）
