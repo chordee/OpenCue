@@ -26,7 +26,7 @@ set OPENCUE_VENV=%OPENCUE_HOME%\venv
 
 REM Node role: workstation = artist machine, needs CueNIMBY scheduling
 REM            render      = dedicated render node, no CueNIMBY
-set NODE_ROLE=workstation
+set NODE_ROLE=render
 
 REM --- Deterministic environment ---------------------------------------------
 REM Do NOT rely on whatever PATH the launching process happened to have.
