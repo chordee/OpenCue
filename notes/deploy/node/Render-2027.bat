@@ -21,6 +21,13 @@ if not exist "%MAYA_BIN%\Render.exe" (
     exit /b 127
 )
 
+REM --- Crash reporter ---------------------------------------------------------
+REM A crashing mayabatch.exe opens Autodesk's Customer Error Reporting dialog
+REM (cer_dialog.exe) on the desktop. On a render node nobody answers it, and on
+REM an artist workstation it pops up in front of the artist. Turn it off.
+set MAYA_DISABLE_CER=1
+REM ---------------------------------------------------------------------------
+
 REM --- DCC license servers ---------------------------------------------------
 REM RQD does NOT inherit the interactive user's environment. Uncomment and
 REM point at the studio license server before using Arnold / MtoA.

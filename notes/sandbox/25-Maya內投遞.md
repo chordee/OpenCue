@@ -173,6 +173,22 @@ PowerShell 無法啟動：The paging file is too small for this operation to com
 
 有兩個 frame 以 exit 304 在 1 秒內失敗、沒有任何輸出，推測是記憶體不足無法啟動程序。
 
+**使用者看到的「crash」**：一個錯誤回報視窗。Windows 事件紀錄（Application，22:00 前後）：
+
+| 時間 | 當掉的程式 | 例外 |
+|---|---|---|
+| 22:00:04、22:00:13 | `mayabatch.exe`（`Render.exe` 啟動的算圖程序） | 0xc0000005 |
+| 22:00:01～22:00:48 | `cer_dialog.exe`（Autodesk Customer Error Reporting） | 0xc0000005、0xc0000409、0xc00000fd |
+
+錯誤回報視窗是**算圖中的 Maya 當掉後，Autodesk 的回報程式跳出來的**，
+不是投遞視窗（`pythonw.exe` 沒有任何當機紀錄），Maya 主視窗也沒有受影響。
+第二次測試（22:31）沒有任何當機紀錄。
+
+這在正式環境是個問題：節點上的 Maya 算圖當掉時，回報視窗會出現在桌面上，
+工作站上會跳到 artist 面前，專職算圖機上則沒人關閉。
+Maya 2027 的執行檔中有 `MAYA_DISABLE_CER` 這個環境變數，已加進兩支 Maya wrapper。
+加入後 wrapper 照常算圖；**關閉回報視窗的效果未實測**（需要讓 Maya 當掉才能驗證）。
+
 正式環境的工作站在上班時段由 CueNIMBY 鎖定，不會在 artist 使用中接工作，
 所以不會發生同樣的情況。本機測試時可以在投遞介面把 Cores 設大一點（例如 4），
 減少同時執行的 frame 數。
