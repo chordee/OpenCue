@@ -113,6 +113,7 @@ def build_window(info):
 
     def node_changed():
         node = widget.settingsWidget.nodes[widget.settingsWidget.node()]
+        widget.layerNameInput.setText(node["path"].rsplit("/", 1)[-1])
         widget.frameBox.frameSpecInput.setText(node["range"])
         widget.settingsWidget.wholeRange.setter(int(node["simulation"]))
         update_chunk()

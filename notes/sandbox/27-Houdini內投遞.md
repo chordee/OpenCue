@@ -130,9 +130,16 @@ Solver 在沒有前一格時會從起始格重算，所以**結果不會錯，�
 
 ---
 
+### 6. 在 Houdini 介面中人工投遞
+
+開啟測試場景，由 Python Shell 呼叫 `submit()`，依序送出四個節點：四個 job 全部成功，模擬快取是 1 個 task、chunk 10。
+
+發現一個問題：換節點時 layer 名稱沒有跟著換，第二個以後的 job 都沿用第一次填的 `convert_cache`。
+已改為選節點時自動帶入節點名稱，並加進 [`lab/check_submit_tools.py`](lab/check_submit_tools.py) 的檢查。
+
 ## 三、尚未驗證
 
-- **在 Houdini 介面中人工操作**（shelf 按鈕、存檔詢問、預先選取目前選取的節點）
+- shelf 按鈕本身（人工測試由 Python Shell 呼叫，執行的是同一段程式）、未存檔時的詢問
 - 其他 Houdini 版本、Python 2.7 的舊版 Houdini
 - Redshift 等第三方算圖器的 ROP（本機沒有安裝）
 - 真正的 DOP 模擬（Pyro、Vellum 等）；本次用 Solver SOP 代表

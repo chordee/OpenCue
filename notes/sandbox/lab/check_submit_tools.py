@@ -88,6 +88,7 @@ def check_houdini(submit):
             ("/obj/geo1/convert_cache", "1-4", "1"),
             ("/obj/geo1/sim_cache", "1-10", "10")):
         select_node(widget, path)
+        check(path + " layer name", widget.layerNameInput.text(), path.rsplit("/", 1)[-1])
         layer = fill(widget, "check_houdini_" + path.rsplit("/", 1)[-1])
         check(path + " service", layer.services, ["houdini2204"])
         check(path + " range", layer.layerRange, expected_range)

@@ -55,6 +55,7 @@
 | [`27-Houdini內投遞.md`](27-Houdini內投遞.md) | 從 Houdini 投遞的兩段式工具：節點種類、模擬整段一個 task、實測 |
 | [`28-Maya結束時跳出錯誤回報.md`](28-Maya結束時跳出錯誤回報.md) | 每格 Maya 都跳出 Autodesk 錯誤回報：授權模組缺 `ALLUSERSPROFILE`，以 `[UseHostEnvVar]` 修正 |
 | [`29-frame的時區.md`](29-frame的時區.md) | RQD 把 frame 的 `TZ` 寫死為美西時間，以 `[UseHostEnvVar]` 修正 |
+| [`30-Arnold授權與假成功.md`](30-Arnold授權與假成功.md) | 農場上的 Arnold 拿不到授權卻顯示成功：授權變數與 `ocrun` 的失敗偵測 |
 | [`lab/`](lab/) | 測試用的腳本（投遞、算圖、磁碟機測試）與本機 sandbox 的環境變數紀錄 |
 
 ## 閱讀建議（依工作角色導讀）

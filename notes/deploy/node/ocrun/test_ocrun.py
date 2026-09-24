@@ -1,4 +1,5 @@
 """python -m unittest test_ocrun   (run inside this directory)"""
+import io
 import os
 import subprocess
 import sys
@@ -50,6 +51,29 @@ class OcrunTest(unittest.TestCase):
                          out, "x y"])
         with open(out) as f:
             self.assertEqual(f.read(), "x y")
+
+    def run_captured(self, code):
+        stdout = sys.stdout
+        sys.stdout = io.TextIOWrapper(io.BytesIO())
+        try:
+            rc = ocrun.main(["maya", "2027", PROGRAM, "-c", code])
+            sys.stdout.flush()
+            return rc, sys.stdout.buffer.getvalue().decode()
+        finally:
+            sys.stdout = stdout
+
+    def test_fail_pattern_fails_a_zero_exit(self):
+        rc, out = self.run_captured(
+            "print('00:01 | ERROR | aborting render because this is a batch render')")
+        self.assertEqual(rc, 1)
+        self.assertIn("aborting render because", out)
+        self.assertIn("[ocrun] failing the frame", out)
+
+    def test_output_passes_through_and_exit_code_is_kept(self):
+        rc, out = self.run_captured("import sys; print('hello'); sys.exit(4)")
+        self.assertEqual(rc, 4)
+        self.assertIn("hello", out)
+        self.assertNotIn("failing the frame", out)
 
     def test_unknown_version_or_program(self):
         self.assertEqual(ocrun.main(["maya", "2024", PROGRAM]), 127)

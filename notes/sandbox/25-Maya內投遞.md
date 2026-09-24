@@ -215,6 +215,10 @@ tags=maya_2027
 
 3 個 frame 同時在本機執行，可用記憶體最低約 3.3 GB，沒有再出問題。
 
+> **更正**：這 3 格其實是**假成功**。log 裡都有 `license checkout error` 與
+> `aborting render because this is a batch render and abort_on_license_fail option is enabled`，
+> Arnold 沒有算出任何圖，但 `Render.exe` 回傳 0，frame 被當成成功。見 [`30`](30-Arnold授權與假成功.md)。
+
 ### 4. CueWeb 看不到 job
 
 CueWeb 的「Autoload Mine」以登入帳號判斷「我的」job（`cueweb/app/page.tsx`：

@@ -30,6 +30,14 @@ PRODUCT_ENV = {
     "maya": {"MAYA_DISABLE_CER": "1"},
 }
 
+# Output that means the frame failed even though the program exits with 0.
+# Matched case-insensitively against each line; any match fails the frame.
+PRODUCT_FAIL_PATTERNS = {
+    # Maya's Render exits with 0 when Arnold cannot get a license and aborts,
+    # so the frame would count as done with no image written.
+    "maya": [b"aborting render because", b"license checkout error"],
+}
+
 
 def load_config():
     path = os.environ.get("OPENCUE_DCC_CONFIG", DEFAULT_CONFIG)
@@ -77,7 +85,30 @@ def main(argv=None):
         return 127
 
     print("[ocrun] %s %s: %s %s" % (product, version, exe, " ".join(args)), flush=True)
-    return subprocess.call([exe] + args, env=build_env(config, product))
+    patterns = PRODUCT_FAIL_PATTERNS.get(product)
+    if not patterns:
+        return subprocess.call([exe] + args, env=build_env(config, product))
+    return run_checked(exe, args, build_env(config, product), patterns)
+
+
+def run_checked(exe, args, env, patterns):
+    """Run the program, pass its output through, and fail on a known error line."""
+    matched = None
+    proc = subprocess.Popen([exe] + args, env=env,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    out = sys.stdout.buffer
+    for line in proc.stdout:
+        out.write(line)
+        out.flush()
+        lower = line.lower()
+        if matched is None and any(p in lower for p in patterns):
+            matched = line.strip()
+    rc = proc.wait()
+    if rc == 0 and matched is not None:
+        print("[ocrun] failing the frame, the output reported: %s"
+              % matched.decode("utf-8", "replace"), flush=True)
+        return 1
+    return rc
 
 
 if __name__ == "__main__":
