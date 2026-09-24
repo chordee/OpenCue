@@ -11,6 +11,24 @@
   若遷就 Windows，會養出一堆正式環境用不到的 workaround。
 - Repo 是 fork：`chordee/OpenCue`，測試分支 `demo/sandbox-test`。
 
+## 現成的 image
+
+已經 build 好的 image 公開在 GHCR，**不需登入即可直接 pull**，部署時不必自己 build：
+
+| 元件 | image |
+|---|---|
+| Cuebot | `ghcr.io/chordee/opencue/cuebot:1.34.4-1d73523b` |
+| Flyway（DB migration） | `ghcr.io/chordee/opencue/flyway:1.34.4-1d73523b` |
+| REST Gateway | `ghcr.io/chordee/opencue/rest-gateway:1.34.4-1d73523b` |
+| CueWeb | `ghcr.io/chordee/opencue/cueweb:1.34.4-1d73523b` |
+| init（建立 show / service） | `ghcr.io/chordee/opencue/init:1.34.4-1d73523b` |
+
+- `stack/env.example` 的預設值就是這一組，照著填環境變數即可部署（步驟見 `22`）
+- 只有 **amd64**（Intel / AMD 的 x86-64 主機）
+- CueWeb 是**不需要登入**的版本，連得到 3000 port 就能操作，請用防火牆限制來源
+- 五個 image 合計約 6 GB，第一次部署的下載時間要預留（實測見 `22`）
+- 新版本由 GitHub Actions 的 **Sandbox images** workflow 手動觸發產生，tag 會換成新的 commit SHA
+
 ## 筆記索引
 
 | 檔案 | 內容 |
