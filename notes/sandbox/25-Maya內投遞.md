@@ -177,11 +177,32 @@ PowerShell 無法啟動：The paging file is too small for this operation to com
 所以不會發生同樣的情況。本機測試時可以在投遞介面把 Cores 設大一點（例如 4），
 減少同時執行的 frame 數。
 
+### 3. 修正後重新人工測試
+
+在 Maya 2027 中開啟 `scene_luffy_test.ma`（Arnold），由 Script Editor 呼叫
+`opencue_maya_launcher.submit()`，投遞視窗正常開啟，送出 frame 1-3：
+
+```
+Render-2027.bat -r file -s #FRAME_START# -e #FRAME_END# -cam persp .../scene_luffy_test.ma
+tags=maya_2027
+
+0001  SUCCEEDED  98 秒  1164 MB
+0002  SUCCEEDED  98 秒  1164 MB
+0003  SUCCEEDED  98 秒  1150 MB
+```
+
+3 個 frame 同時在本機執行，可用記憶體最低約 3.3 GB，沒有再出問題。
+
+### 4. CueWeb 看不到 job
+
+CueWeb 的「Autoload Mine」以登入帳號判斷「我的」job（`cueweb/app/page.tsx`：
+`getServerSession()` 取 email 或 name）。不需要登入的版本中使用者一律是 `unknown`，
+所以自動載入是空的。要在搜尋框輸入 show 或 job 名稱後按 Load。
+
 ## 六、尚未驗證
 
 | 項目 | 說明 |
 |---|---|
-| 在 Maya 介面中點 shelf 按鈕 | 需要人工操作。本次以 offscreen 模式與程式操作模擬 |
 | 舊版 Maya | 本機只有 2027；語法相容 Python 2.7，但未實際執行 |
 | Nuke 外掛 | 未安裝 |
 | Houdini | 沒有現成外掛，未製作 |
