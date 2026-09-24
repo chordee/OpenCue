@@ -193,7 +193,16 @@ studio/release    Portainer 只追蹤這個分支
 
 ### 實測
 
-（測試中）
+| 步驟 | Portainer 記錄的 commit | init | Cuebot |
+|---|---|---|---|
+| 切換 reference 到 `studio/release` | `ed47b2d4` | 未重跑 | 未重啟 |
+| 只 push `studio/main`（`004f267d`），等 3 分鐘 | **仍是 `ed47b2d4`** | **未重跑** | 未重啟 |
+| `studio/release` fast-forward 到 `004f267d` 並 push | 約 1 分鐘內更新為 `004f267d` | 重跑 | 未重啟 |
+
+**正式環境只在推進 `studio/release` 時才會更新。**
+
+測試完成後輪詢間隔改為 5 分鐘。1 分鐘只是為了縮短測試時間；
+改為追蹤專用分支後，推進分支的頻率很低，5～15 分鐘的延遲可以接受。
 
 ### 尚未測試
 
