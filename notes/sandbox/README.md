@@ -9,7 +9,7 @@
 - 因此測試刻意**全程在 WSL2 Ubuntu 內操作**，而不是 Windows 原生路徑。
   理由：路徑、權限、bind mount 行為跟正式 Linux 宿主一致，筆記可直接搬過去；
   若遷就 Windows，會養出一堆正式環境用不到的 workaround。
-- Repo 是 fork：`chordee/OpenCue`，測試分支 `demo/sandbox-test`。
+- Repo 是 fork：`chordee/OpenCue`，工作分支 `studio/main`（原名 `demo/sandbox-test`，同時是 GitHub 上的預設分支）。
 
 ## 本目錄與 `notes/deploy/` 的分工
 
