@@ -88,7 +88,7 @@ docker exec opencue-cuebot getent hosts host.docker.internal
   → 192.168.65.254
 ```
 
-所以 frame 派不出去（症狀與 `04` 的坑 #3 相同）。
+所以 frame 派不出去（症狀與 [`04`](04-部署過程.md) 的坑 #3 相同）。
 
 **修法**：改用**單段**的實際主機名稱，並在 cuebot 服務加 `extra_hosts`：
 
@@ -143,7 +143,7 @@ logDestination  /tmp/rqd/logs/testing/testshot/logs/<job>--<id>\<job>.<frame>.rq
 前半是 Linux 斜線、後半是 Windows 反斜線。
 
 **正式環境必須**：把 `CUE_FRAME_LOG_DIR` 設成所有節點都寫得到的共享儲存路徑
-（**frame log 要用 UNC 正斜線**，因為 CueWeb 在 Linux 容器裡也要讀它；其他路徑可用磁碟機代號，見 `11` 第 2 點），而不是留著預設的 `/tmp/rqd/logs`。
+（**frame log 要用 UNC 正斜線**，因為 CueWeb 在 Linux 容器裡也要讀它；其他路徑可用磁碟機代號，見 [`11`](11-正式部署風險與待辦.md) 第 2 點），而不是留著預設的 `/tmp/rqd/logs`。
 
 ### 坑 #8：PATH 污染（自己造成的，但值得記）
 
@@ -219,7 +219,7 @@ cwd  C:\Users\chordee\AppData\Local\Temp/testing-testshot-.../0001-test_layer
 ## 仍未驗證
 
 > **注意**：本節寫於當時，部分項目後來已補測完成。
-> **最新的驗證狀態以 `19-驗證狀態總表.md` 為準。**
+> **最新的驗證狀態以 [`19-驗證狀態總表.md`](19-驗證狀態總表.md) 為準。**
 
 
 | 項目 | 說明 |

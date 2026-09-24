@@ -64,7 +64,7 @@ if not exist "%HB%\hython.exe" (
 exit /b %ERRORLEVEL%
 ```
 
-範本見 `notes/deploy/node/hython-22.0.429.bat`。**必須是純 ASCII**（見 `09` 坑 #13）。
+範本見 `notes/deploy/node/hython-22.0.429.bat`。**必須是純 ASCII**（見 [`09`](09-NIMBY與混合機隊.md) 坑 #13）。
 
 一台節點只會有它真正裝了的版本的包裝腳本。找不到執行檔時明確回傳 127，
 而不是靜默失敗。
@@ -206,7 +206,7 @@ Shell("svc_render", command=[...], range="1-2", service="houdini2204")
 好處是資源需求集中管理、投遞端不必懂 tag 規則，
 而且 **CueWeb 的投遞表單有 Services 下拉選單**，選對 service 即可。
 
-**完整說明與實測見 `21-Service與資源模型.md`。**
+**完整說明與實測見 [`21-Service與資源模型.md`](21-Service與資源模型.md)。**
 以下仍保留手寫 tag 的規則，因為理解它才能理解 service 在做什麼。
 
 #### 推論與實務建議
@@ -316,7 +316,7 @@ cueadmin -force -unlock -host <節點名稱>
 ## 尚未驗證
 
 > **注意**：本節寫於當時，部分項目後來已補測完成。
-> **最新的驗證狀態以 `19-驗證狀態總表.md` 為準。**
+> **最新的驗證狀態以 [`19-驗證狀態總表.md`](19-驗證狀態總表.md) 為準。**
 
 
 | 項目 | 說明 |
@@ -354,7 +354,7 @@ cueadmin -force -unlock -host <節點名稱>
 ```
 
 Nuke 是 0，因為每個 frame 只跑 0.05 秒，在 10 秒的採樣間隔之間就結束了
-（見 `08` 的說明）。**不是故障。**
+（見 [`08`](08-Windows節點實錄.md) 的說明）。**不是故障。**
 
 ## Maya
 
@@ -776,7 +776,7 @@ Windows 那個 DEAD 是**預期內的**：`/bin/sleep` 在 Windows 上不存在�
 「每台機器 DCC 裝在不同位置」，但目前只在一台機器上驗證過。
 
 **這些應列為正式部署第一台 Windows 節點的驗收項目**
-（見 `18` 的部署順序）。只要找到任何一台閒置的實體 Windows 機器，
+（見 [`18`](18-三種角色的準備清單.md) 的部署順序）。只要找到任何一台閒置的實體 Windows 機器，
 即使不裝 DCC，也能驗證前四項最容易出事的部分。
 
 ## 跨平台的 log 路徑對應（per-OS frame log root）

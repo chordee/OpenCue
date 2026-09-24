@@ -206,4 +206,4 @@ studio/release    Portainer 只追蹤這個分支
 
 ### 修改 yml 的情況
 
-已補測：只修改 Cuebot 的啟動參數時，只有 Cuebot 被重建。見 `24` 第三節。
+已補測：只修改 Cuebot 的啟動參數時，只有 Cuebot 被重建。見 [`24`](24-派工行為與監控.md) 第三節。

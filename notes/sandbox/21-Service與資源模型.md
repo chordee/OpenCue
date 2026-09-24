@@ -35,7 +35,7 @@ The layer name must be at least 3 characters
 
 存在 `job.str_user`，有三個實際用途：
 
-1. **RQD 會拿它建立同名使用者**來執行 frame（見 `04` 坑 #4 的 uid 衝突）
+1. **RQD 會拿它建立同名使用者**來執行 frame（見 [`04`](04-部署過程.md) 坑 #4 的 uid 衝突）
 2. **CueGUI 的 `selectMine`** 靠它過濾「我的 job」
 3. 歸屬與稽核
 
@@ -47,8 +47,8 @@ The layer name must be at least 3 characters
 **實體站點的分組**，例如 `local`（公司機房）、`cloud`、`dev`。
 Allocation 的名稱前綴就是 facility：`local.general`、`cloud.general`。
 
-**它會硬性限制派工**，而且失敗時完全沒有錯誤訊息 —— 見 `12` 的坑 #17
-與 `17` 的場景 20。
+**它會硬性限制派工**，而且失敗時完全沒有錯誤訊息 —— 見 [`12`](12-真實DCC算圖.md) 的坑 #17
+與 [`17`](17-故障排查與常見疏失速查.md) 的場景 20。
 
 ## 四、Service —— 資源需求與 tag 的範本
 
@@ -91,7 +91,7 @@ Allocation 的名稱前綴就是 facility：`local.general`、`cloud.general`。
 
 ### 為什麼
 
-先前的建議是「投遞時明確指定版本 tag」（見 `12`）。那可行，但有缺點：
+先前的建議是「投遞時明確指定版本 tag」（見 [`12`](12-真實DCC算圖.md)）。那可行，但有缺點：
 
 - 資源需求（記憶體、核心數）散落在各個投遞腳本裡
 - artist 必須懂 tag 的命名規則
@@ -192,7 +192,7 @@ Shell("svc_render",
 
 | 型態 | 意義 | 適用 |
 |---|---|---|
-| `LayerOnLayer` | 整層等整層 | 兩階段派工（見 `20`） |
+| `LayerOnLayer` | 整層等整層 | 兩階段派工（見 [`20`](20-相依性與維運操作.md)） |
 | `FrameByFrame` | 第 N 格等第 N 格 | 長序列，可及早開始 |
 | `PreviousFrame` | 等前一格 | 有時序相依的模擬 |
 | `LayerOnAny` | 該層任一格完成即可 | |
@@ -217,4 +217,4 @@ tag 有任一相符、核心與記憶體足夠、節點未鎖定。
 
 **任何一項不符都是靜默的**，不會有錯誤訊息 ——
 這就是為什麼「frame 卡 WAITING」是本專案最常見的症狀，
-而 `17` 的場景 1、19、20 分別對應其中三種原因。
+而 [`17`](17-故障排查與常見疏失速查.md) 的場景 1、19、20 分別對應其中三種原因。

@@ -18,57 +18,57 @@
 | **`notes/deploy/`** | **正式部署**：只寫怎麼做，設定檔都在那裡，現成的 GHCR image 也列在那裡 |
 | `notes/sandbox/`（本目錄） | **測試紀錄**：過程、踩過的坑、原始碼依據與實測數據 |
 
-**要部署的話，從 `notes/deploy/README.md` 開始。** 本目錄是那些做法的證據，
+**要部署的話，從 [`notes/deploy/README.md`](../deploy/README.md) 開始。** 本目錄是那些做法的證據，
 遇到問題或想知道「為什麼要這樣做」時再回來查。
 
 ## 筆記索引
 
 | 檔案 | 內容 |
 |---|---|
-| `00-環境與前置.md` | 本機環境盤點、版本、必要目錄 |
-| `01-平台差異與Portainer.md` | 官方 compose 對 Linux 宿主 / Portainer 不友善之處 |
-| `02-目標架構.md` | 依 IT 描述推導的正式環境架構與注意事項 |
-| `03-容器說明.md` | stack 裡每個容器的角色、設定與正式環境注意事項 |
-| `04-部署過程.md` | 實際啟動步驟、踩到的坑與結果 |
-| `05-可回饋上游的問題.md` | 本次發現的 OpenCue 專案本身問題與建議修法 |
-| `06-資源用量實測.md` | 實測的 CPU/記憶體用量，用於判斷主機規格 |
-| `07-Portainer部署實錄.md` | 用 Portainer API 部署與驗證的完整流程 |
-| `08-Windows節點實錄.md` | Windows 原生 RQD 的安裝、設定與五個坑 |
-| `09-NIMBY與混合機隊.md` | 工作站與專職算圖機的分工、CueNIMBY 時段排程實測 |
-| `10-Windows用戶端工具.md` | CueGUI / CueSubmit 在 Windows 的安裝與設定路徑 |
-| `11-正式部署風險與待辦.md` | 規模化後才會遇到的問題：DNS、UNC、防火牆、初始化、EDR、備份 |
-| `12-真實DCC算圖.md` | Houdini / Maya / Nuke 實際算圖、多版本共存與環境變數的坑 |
-| `13-CueWeb與RESTGateway.md` | 網頁 UI 部署、JWT 驗證、跨平台 frame log 的解法 |
-| `14-Registry流程.md` | build → push → Portainer pull 完整驗證與正式環境要求 |
-| `15-空間規劃.md` | 各項目的實測用量、成長特性與清理策略 |
-| `16-Portainer與SSH的分工.md` | 哪些工作 Portainer 做得到、哪些需要宿主權限 |
-| `17-故障排查與常見疏失速查.md` | **遇到問題先看這篇**：報錯現象 ➔ 疏失對準 ➔ 解法對照手冊 |
-| `18-三種角色的準備清單.md` | 依機器角色展開的準備清單（**已由 `notes/deploy/` 取代**） |
-| `19-驗證狀態總表.md` | **哪些驗過、哪些沒驗**。各篇的「尚未驗證」段落可能過時，以此為準 |
-| `20-相依性與維運操作.md` | DEPEND 狀態、chain/diamond/fan-in 實測、常用維運指令 |
-| `21-Service與資源模型.md` | Layer / Username / Facility / Service / Dependency 的關係與用途 |
-| `22-兩種部署路線.md` | **同一份 stack 兩種部署法**：Portainer（image 走 registry）或 docker compose（在宿主 build）；初始化容器 |
-| `23-Portainer的Git模式.md` | stack 直接指向 GitHub、三種更新方式的實測（手動 / 輪詢 / webhook） |
-| `24-派工行為與監控.md` | 雙角色派工、鎖定時正在跑的 frame、500 frame、Prometheus / Grafana、Loki 評估 |
-| `25-Maya內投遞.md` | repo 外掛的限制（DCC 內建 Python 版本、指令格式）、兩段式投遞工具的實測 |
+| [`00-環境與前置.md`](00-環境與前置.md) | 本機環境盤點、版本、必要目錄 |
+| [`01-平台差異與Portainer.md`](01-平台差異與Portainer.md) | 官方 compose 對 Linux 宿主 / Portainer 不友善之處 |
+| [`02-目標架構.md`](02-目標架構.md) | 依 IT 描述推導的正式環境架構與注意事項 |
+| [`03-容器說明.md`](03-容器說明.md) | stack 裡每個容器的角色、設定與正式環境注意事項 |
+| [`04-部署過程.md`](04-部署過程.md) | 實際啟動步驟、踩到的坑與結果 |
+| [`05-可回饋上游的問題.md`](05-可回饋上游的問題.md) | 本次發現的 OpenCue 專案本身問題與建議修法 |
+| [`06-資源用量實測.md`](06-資源用量實測.md) | 實測的 CPU/記憶體用量，用於判斷主機規格 |
+| [`07-Portainer部署實錄.md`](07-Portainer部署實錄.md) | 用 Portainer API 部署與驗證的完整流程 |
+| [`08-Windows節點實錄.md`](08-Windows節點實錄.md) | Windows 原生 RQD 的安裝、設定與五個坑 |
+| [`09-NIMBY與混合機隊.md`](09-NIMBY與混合機隊.md) | 工作站與專職算圖機的分工、CueNIMBY 時段排程實測 |
+| [`10-Windows用戶端工具.md`](10-Windows用戶端工具.md) | CueGUI / CueSubmit 在 Windows 的安裝與設定路徑 |
+| [`11-正式部署風險與待辦.md`](11-正式部署風險與待辦.md) | 規模化後才會遇到的問題：DNS、UNC、防火牆、初始化、EDR、備份 |
+| [`12-真實DCC算圖.md`](12-真實DCC算圖.md) | Houdini / Maya / Nuke 實際算圖、多版本共存與環境變數的坑 |
+| [`13-CueWeb與RESTGateway.md`](13-CueWeb與RESTGateway.md) | 網頁 UI 部署、JWT 驗證、跨平台 frame log 的解法 |
+| [`14-Registry流程.md`](14-Registry流程.md) | build → push → Portainer pull 完整驗證與正式環境要求 |
+| [`15-空間規劃.md`](15-空間規劃.md) | 各項目的實測用量、成長特性與清理策略 |
+| [`16-Portainer與SSH的分工.md`](16-Portainer與SSH的分工.md) | 哪些工作 Portainer 做得到、哪些需要宿主權限 |
+| [`17-故障排查與常見疏失速查.md`](17-故障排查與常見疏失速查.md) | **遇到問題先看這篇**：報錯現象 ➔ 疏失對準 ➔ 解法對照手冊 |
+| [`18-三種角色的準備清單.md`](18-三種角色的準備清單.md) | 依機器角色展開的準備清單（**已由 `notes/deploy/` 取代**） |
+| [`19-驗證狀態總表.md`](19-驗證狀態總表.md) | **哪些驗過、哪些沒驗**。各篇的「尚未驗證」段落可能過時，以此為準 |
+| [`20-相依性與維運操作.md`](20-相依性與維運操作.md) | DEPEND 狀態、chain/diamond/fan-in 實測、常用維運指令 |
+| [`21-Service與資源模型.md`](21-Service與資源模型.md) | Layer / Username / Facility / Service / Dependency 的關係與用途 |
+| [`22-兩種部署路線.md`](22-兩種部署路線.md) | **同一份 stack 兩種部署法**：Portainer（image 走 registry）或 docker compose（在宿主 build）；初始化容器 |
+| [`23-Portainer的Git模式.md`](23-Portainer的Git模式.md) | stack 直接指向 GitHub、三種更新方式的實測（手動 / 輪詢 / webhook） |
+| [`24-派工行為與監控.md`](24-派工行為與監控.md) | 雙角色派工、鎖定時正在跑的 frame、500 frame、Prometheus / Grafana、Loki 評估 |
+| [`25-Maya內投遞.md`](25-Maya內投遞.md) | repo 外掛的限制（DCC 內建 Python 版本、指令格式）、兩段式投遞工具的實測 |
 | `lab/` | 測試用的腳本（投遞、算圖、磁碟機測試）與本機 sandbox 的環境變數紀錄 |
 
 ## 閱讀建議（依工作角色導讀）
 
 - **想快速掌握架構與運作原理**：
-  先讀 `02-目標架構.md`（含 Frame 端到端生命週期圖解）與 `03-容器說明.md`。
+  先讀 [`02-目標架構.md`](02-目標架構.md)（含 Frame 端到端生命週期圖解）與 [`03-容器說明.md`](03-容器說明.md)。
 - **負責部署伺服器與算圖節點**：
-  依 `notes/deploy/` 的步驟進行；背景細節見 `07-Portainer部署實錄.md`、`08-Windows節點實錄.md`、`14-Registry流程.md`。
+  依 `notes/deploy/` 的步驟進行；背景細節見 [`07-Portainer部署實錄.md`](07-Portainer部署實錄.md)、[`08-Windows節點實錄.md`](08-Windows節點實錄.md)、[`14-Registry流程.md`](14-Registry流程.md)。
 - **負責藝術家工作站與 DCC Pipeline**：
-  詳讀 `09-NIMBY與混合機隊.md`、`10-Windows用戶端工具.md`、`12-真實DCC算圖.md`（Houdini/Maya/Nuke 包裝實務）。
+  詳讀 [`09-NIMBY與混合機隊.md`](09-NIMBY與混合機隊.md)、[`10-Windows用戶端工具.md`](10-Windows用戶端工具.md)、[`12-真實DCC算圖.md`](12-真實DCC算圖.md)（Houdini/Maya/Nuke 包裝實務）。
 - **IT 網管、資安與維運規劃**：
-  詳讀 `11-正式部署風險與待辦.md`、`15-空間規劃.md`、`16-Portainer與SSH的分工.md`。
+  詳讀 [`11-正式部署風險與待辦.md`](11-正式部署風險與待辦.md)、[`15-空間規劃.md`](15-空間規劃.md)、[`16-Portainer與SSH的分工.md`](16-Portainer與SSH的分工.md)。
 - **實際要動手部署（依機器角色查該準備什麼）**：
-  直接翻閱 **`18-三種角色的準備清單.md`**，它把散在各篇的準備工作
+  直接翻閱 **[`18-三種角色的準備清單.md`](18-三種角色的準備清單.md)**，它把散在各篇的準備工作
   依 server / workstation / render host 三種角色重新整理成檢查清單，
   並附建議的部署順序。
 - **上線除錯與突發狀況**：
-  直接翻閱 **`17-故障排查與常見疏失速查.md`**，依畫面報錯快速對準可能疏失點。
+  直接翻閱 **[`17-故障排查與常見疏失速查.md`](17-故障排查與常見疏失速查.md)**，依畫面報錯快速對準可能疏失點。
 
 ## 名詞對照
 

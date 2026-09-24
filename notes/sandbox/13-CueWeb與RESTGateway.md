@@ -21,7 +21,7 @@ or may require 'docker login'
 
 容易被誤判成自己帳號權限不足。
 
-詳見 `05` 的第 13、14 項。**結論：自建 image + registry 是必要步驟，不是選項。**
+詳見 [`05`](05-可回饋上游的問題.md) 的第 13、14 項。**結論：自建 image + registry 是必要步驟，不是選項。**
 
 ### 自行 build 的好處（不只是沒得選）
 
@@ -71,7 +71,7 @@ opencue-db             Up (healthy)    5432/tcp          <- 無對外映射
 
 ### NEXT_PUBLIC_* 的 build-time 問題其實已被官方繞過
 
-`03` 曾記錄這是個地雷：Next.js 把 `NEXT_PUBLIC_*` 烘進 image，
+[`03`](03-容器說明.md) 曾記錄這是個地雷：Next.js 把 `NEXT_PUBLIC_*` 烘進 image，
 若烘的是 `localhost:8448`，換部署位置就 `ECONNREFUSED`。
 
 實際看設定後發現官方的處理是對的：
@@ -190,13 +190,13 @@ CUE_FRAME_LOG_DIR=//fileserver/opencue/logs
 
 **同一個路徑字串在兩個平台都成立。**
 
-這也再次佐證 `11` 第 2 點「一律使用 UNC」的規範 ——
+這也再次佐證 [`11`](11-正式部署風險與待辦.md) 第 2 點「一律使用 UNC」的規範 ——
 它不只是為了可靠性，**更是跨平台 frame log 能運作的必要條件**。
 
 ### 尚未驗證
 
 > **注意**：本節寫於當時，部分項目後來已補測完成。
-> **最新的驗證狀態以 `19-驗證狀態總表.md` 為準。**
+> **最新的驗證狀態以 [`19-驗證狀態總表.md`](19-驗證狀態總表.md) 為準。**
 
 
 這個解法的 Linux 端已實測（`//` 前綴可行），但**完整鏈路需要真的有 SMB 共享
@@ -264,7 +264,7 @@ Windows 路徑。**但 Portainer 是直接對 daemon 下指令，沒有這層轉
 ### 為什麼官方 sandbox 把 PREVIEW_ROOTS 指向 log 目錄
 
 不是筆誤 —— sandbox 的 Blender demo 刻意把算好的圖寫進 `/tmp/rqd/logs`
-（`sandbox/README.md` 有說明，因為容器版 RQD 沒有 Blender，改由宿主算圖
+（[`sandbox/README.md`](../../sandbox/README.md) 有說明，因為容器版 RQD 沒有 Blender，改由宿主算圖
 並寫進 CueWeb 唯讀掛載的那個目錄）。
 
 **正式環境算圖輸出是獨立的共享**，兩者應分開掛載。
@@ -458,7 +458,7 @@ CueWeb 內建投遞頁面（`app/cuesubmit/page.tsx`），**不需要安裝桌�
 **Username 要填什麼**：填**實際會在 render node 上被建立的使用者名稱**。
 
 這個值會成為 job 的 `str_user`，而 **RQD 會拿它去建立同名使用者**
-（見 `04` 坑 #4）。填一個節點上沒處理過的名字，
+（見 [`04`](04-部署過程.md) 坑 #4）。填一個節點上沒處理過的名字，
 在 Linux 節點會觸發 `useradd` 失敗導致 frame 被 abort。
 
 **Layer Info**
@@ -485,7 +485,7 @@ general | desktop
 ```
 
 **沒有辦法指定 DCC 版本或平台的 tag。** 而 tag 是 regex 的「或」比對
-（見 `12`），所以任何帶 `general` 的節點都會收下。
+（見 [`12`](12-真實DCC算圖.md)），所以任何帶 `general` 的節點都會收下。
 
 實測後果：一個要跑 Windows 包裝腳本的 job，被派到了 Linux 容器節點：
 
@@ -503,7 +503,7 @@ exitStatus 127
 
 ### 限制二：沒有 OS 欄位
 
-連帶影響 per-OS 的 frame log 路徑對應（見 `12`）。
+連帶影響 per-OS 的 frame log 路徑對應（見 [`12`](12-真實DCC算圖.md)）。
 
 實測那批失敗的 frame，log 落在 Linux 節點的：
 

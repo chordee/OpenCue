@@ -31,7 +31,7 @@
 
 Portainer 沒有 build context，compose 裡的 `build:` 用不了。
 
-而 OpenCue 的 CueWeb 與 REST Gateway **沒有發布公開 image**（見 `13`），
+而 OpenCue 的 CueWeb 與 REST Gateway **沒有發布公開 image**（見 [`13`](13-CueWeb與RESTGateway.md)），
 所以自建是必要的。這導致整條 registry 鏈被迫出現：
 
 - 一台建置機器（記憶體要夠，CueWeb 的 Next.js build 吃數 GB）
@@ -49,12 +49,12 @@ Portainer 沒有 build context，compose 裡的 `build:` 用不了。
 
 | 工作 | 來源 | Portainer |
 |---|---|---|
-| PostgreSQL 歷史表定期清理 | `11` 第 6 點 | ❌ ⚠ |
-| `pg_dump` 定期備份 | `11` 第 6 點 | ❌ ⚠ |
-| registry garbage-collect | `14` | ❌ ⚠ |
-| frame log 保留期清理 | `15` | ❌ ⚠ |
-| build cache 清理（建置機器） | `15` | ❌ |
-| 磁碟用量監控與告警 | `15` | ❌ |
+| PostgreSQL 歷史表定期清理 | [`11`](11-正式部署風險與待辦.md) 第 6 點 | ❌ ⚠ |
+| `pg_dump` 定期備份 | [`11`](11-正式部署風險與待辦.md) 第 6 點 | ❌ ⚠ |
+| registry garbage-collect | [`14`](14-Registry流程.md) | ❌ ⚠ |
+| frame log 保留期清理 | [`15`](15-空間規劃.md) | ❌ ⚠ |
+| build cache 清理（建置機器） | [`15`](15-空間規劃.md) | ❌ |
+| 磁碟用量監控與告警 | [`15`](15-空間規劃.md) | ❌ |
 
 **歷史表永遠不會自動清除、DB 沒有備份**，這兩項若沒人處理，
 是實際會出事的風險，不是理論問題。
@@ -66,7 +66,7 @@ Portainer 沒有 build context，compose 裡的 `build:` 用不了。
 | 設定 | 用途 |
 |---|---|
 | `insecure-registries` | registry 若沒有 TLS 憑證就必須設 |
-| 預設 log driver 與輪替 | 避免容器 log 無上限成長（見 `15`） |
+| 預設 log driver 與輪替 | 避免容器 log 無上限成長（見 [`15`](15-空間規劃.md)） |
 | `data-root` | 把 Docker 的資料移到較大的磁碟 |
 
 **注意這是個循環**：registry 沒有 TLS → 需要 `insecure-registries` →
@@ -78,7 +78,7 @@ Portainer 沒有 build context，compose 裡的 `build:` 用不了。
 | 工作 | 說明 |
 |---|---|
 | Docker 開機自啟（systemd） | 宿主重開機後 stack 要自己回來 |
-| 防火牆規則 | 8443 對 Windows 節點開放（見 `11` 第 3 點） |
+| 防火牆規則 | 8443 對 Windows 節點開放（見 [`11`](11-正式部署風險與待辦.md) 第 3 點） |
 | 掛載共享儲存 | CueWeb 要讀 frame log ⚠（可用 CIFS volume 迴避 mount，但宿主仍須具備 cifs-utils） |
 | TLS 憑證安裝 | registry、反向代理 |
 | OS 更新與疑難排解 | |
@@ -112,7 +112,7 @@ Portainer 沒有 build context，compose 裡的 `build:` 用不了。
 
 容器內跑 cron（或 supercronic / ofelia 這類容器排程器），負責：
 
-- 執行歷史表清理 SQL（記得加 `int_ts_stopped > 0` 的防護，見 `11`）
+- 執行歷史表清理 SQL（記得加 `int_ts_stopped > 0` 的防護，見 [`11`](11-正式部署風險與待辦.md)）
 - `pg_dump` 到掛載的備份目錄
 - 依保留期刪除 frame log
 

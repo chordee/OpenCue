@@ -1,6 +1,6 @@
 # 14 — Registry 流程
 
-`13` 已確認自建 image 不是選項而是必要步驟。這一份把
+[`13`](13-CueWeb與RESTGateway.md) 已確認自建 image 不是選項而是必要步驟。這一份把
 **build → push → Portainer pull** 整條走完並驗證。
 
 ## 為什麼一定要 registry
@@ -176,7 +176,7 @@ docker exec opencue-registry \
 | rest-gateway | 184 MB |
 
 **每個版本約 6 GB。** 保留十個版本就是 60 GB，需要規劃保留策略。
-（`flyway` 有 2.15 GB 對一個 one-shot 容器而言偏大，見 `04`。）
+（`flyway` 有 2.15 GB 對一個 one-shot 容器而言偏大，見 [`04`](04-部署過程.md)。）
 
 ### 備份
 
@@ -301,7 +301,7 @@ Cuebot 回來後 RQD 再把結果回報上去。
 
 ## 坑：registry 的刪除有兩個前提
 
-清理測試 image 時踩到的，對 `15` 的空間管理有直接影響。
+清理測試 image 時踩到的，對 [`15`](15-空間規劃.md) 的空間管理有直接影響。
 
 ### 前提一：`REGISTRY_STORAGE_DELETE_ENABLED` 必須在啟動時設定
 

@@ -1,6 +1,6 @@
 # 25 — 從 Maya 直接投遞
 
-正式做法整理在 `notes/deploy/03-工作站.md` 第六節，本篇是評估與實測紀錄。
+正式做法整理在 [`notes/deploy/03-工作站.md`](../deploy/03-工作站.md) 第六節，本篇是評估與實測紀錄。
 
 ---
 
@@ -25,7 +25,7 @@ Nuke：{NUKE_RENDER_CMD} -F #IFRAME# [-X Write節點] -x 場景
 `MAYA_RENDER_CMD` 預設是 `Render`，可以在 `cuesubmit.yaml` 設定（`CUESUBMIT_CONFIG_FILE`
 或 `%APPDATA%\opencue\cuesubmit.yaml`）。一個設定檔只能指定一個值。
 
-指令先組成字串，再以 `command.split()` 切成串列，**路徑含空白時加引號也無效**（`17` 場景 24）。
+指令先組成字串，再以 `command.split()` 切成串列，**路徑含空白時加引號也無效**（[`17` 場景 24](17-故障排查與常見疏失速查.md#場景-24路徑含空白時-frame-失敗)）。
 
 ---
 
@@ -149,7 +149,7 @@ Error: makeCameraRenderable.mel line 34: Camera [None] does not exist.
 
 CueSubmit 的相機選單沒有選擇時，按鈕上顯示 `[None]`，而 `InMayaSettings.getCommandData()`
 直接把按鈕文字當成相機名稱。選了多台時則會送出 `-cam a, b`，同樣無法解析。
-先前以程式測試時有選相機，所以沒有發現。見 `05` 第 22 項。
+先前以程式測試時有選相機，所以沒有發現。見 [`05`](05-可回饋上游的問題.md) 第 22 項。
 
 **修正**（`opencue_maya_submit.py` 的 `MayaSettings`）：
 
