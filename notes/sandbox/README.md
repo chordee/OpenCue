@@ -48,6 +48,7 @@
 | `20-相依性與維運操作.md` | DEPEND 狀態、chain/diamond/fan-in 實測、常用維運指令 |
 | `21-Service與資源模型.md` | Layer / Username / Facility / Service / Dependency 的關係與用途 |
 | `22-兩種部署路線.md` | **同一份 stack 兩種部署法**：Portainer（image 走 registry）或 docker compose（在宿主 build）；初始化容器 |
+| `23-Portainer的Git模式.md` | stack 直接指向 GitHub、三種更新方式的實測（手動 / 輪詢 / webhook） |
 | `lab/` | 測試用的腳本（投遞、算圖、磁碟機測試）與本機 sandbox 的環境變數紀錄 |
 
 ## 閱讀建議（依工作角色導讀）

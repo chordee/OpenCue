@@ -110,6 +110,65 @@ POST https://<portainer>/api/stacks/webhooks/<uuid>
 
 ---
 
-## 三、有新 commit 時（待測）
+## 三、有新 commit 時
 
-（測試中）
+### 實測：只改文件的 commit
+
+push 一個只新增本篇筆記、沒有動 yml 的 commit（`637f02ef`），輪詢間隔 1 分鐘：
+
+```
+05:51:54  push
+05:53     Portainer 偵測到新 commit，ConfigHash 更新為 637f02ef
+          執行部署 → "Stack deployment successful"
+```
+
+各容器的啟動時間：
+
+| 容器 | 啟動時間 | 結果 |
+|---|---|---|
+| db | 05:40:49 | **沒有重啟** |
+| cuebot | 05:41:03 | **沒有重啟** |
+| rest-gateway | 05:41:14 | **沒有重啟** |
+| cueweb | 05:41:20 | **沒有重啟** |
+| flyway | 05:52:59 → 結束 | 重新跑了一次 |
+| init | 05:53:03 → 結束 | 重新跑了一次 |
+
+**Portainer 的自動部署等同 `docker compose up -d`**：只重建設定有變動的服務。
+長期運作的服務沒有中斷；一次性的 flyway 與 init 會再跑一次，
+但 schema 沒變、init 不覆寫既有項目，所以不會造成影響。
+
+**結論：筆記和部署設定放在同一個 repo 沒有問題。**
+改文件的 commit 會觸發一次部署，但不會中斷農場。
+
+### 與手動 Pull and redeploy 的差別
+
+| 觸發方式 | repo 沒變 | repo 有變但服務設定沒變 |
+|---|---|---|
+| 自動（輪詢 / webhook） | 不部署 | 部署，**只重跑一次性容器** |
+| 手動 Pull and redeploy | **全部容器重建** | 全部容器重建 |
+
+手動重新部署會強制重建，自動的不會。**日常更新靠自動機制，
+手動按鈕留給需要強制重建的時候。**
+
+### 升級 image 仍然要手動
+
+image 的 tag 放在 Portainer 的環境變數裡，不在 git 裡。
+所以 **push 不會升級 image**，要升級還是到 Portainer 改環境變數再 Update。
+
+這樣的分工是刻意的：
+
+| 變更 | 放在哪 | 怎麼上線 |
+|---|---|---|
+| stack 結構（新增服務、改 healthcheck、改資源上限） | git | push 後自動 |
+| image 版本 | Portainer 環境變數 | **人工**改 tag |
+| 密碼、路徑等站點設定 | Portainer 環境變數 | 人工 |
+
+image 升級可能帶來 DB migration（只能往前），升級前要先備份，
+所以保留人工確認的步驟。若要連 image 也全自動，可以把 tag 寫成 yml 的預設值
+（`${OPENCUE_CUEBOT_IMAGE:-ghcr.io/...:1.34.4-xxxx}`）並從 Portainer 移除該變數，
+但不建議。
+
+### 尚未測試
+
+- 修改 yml 中服務的實際設定（例如資源上限）後，是否只重建那一個服務。
+  依 compose 的行為應該如此，但本次沒有實測
