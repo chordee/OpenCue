@@ -538,7 +538,7 @@ husk.exe --make-output-path -f 1 -o "C:/opencue/render/husk.$F4.exr" scene.usda
 
 **授權特性待確認**：husk 通常被認為不佔用 Houdini 核心授權、啟動也比完整
 hython 快，這對農場的授權池有明顯好處。但本次無法觀測授權 token 的實際消耗，
-**這一點要用你們自己的授權設定實測確認**，不要直接採信。
+**這一點要用實際的授權設定實測確認**，不要直接採信。
 
 從實測可見的部分是啟動成本：
 - `hython` + Karma ROP：約 5.4–6.7 秒（含 Houdini 啟動與建場景）
