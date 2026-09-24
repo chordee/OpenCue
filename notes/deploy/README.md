@@ -30,6 +30,40 @@ artist 工作站是**雙重身分**：白天是用戶端，下班後是算圖節
 
 ---
 
+## 放在本機，還是放在網路空間
+
+| 放在每台機器本機 `C:\opencue\` | 放在網路空間，全公司共用 |
+|---|---|
+| `venv\`：Python、RQD、用戶端工具 | frame log（`CUE_FRAME_LOG_DIR`，UNC 共享） |
+| `rqd.conf`：每台的主機名稱、tag 不同 | 場景檔、算圖輸出（專案空間） |
+| `rqd-start.bat` | pipeline 工具：從 DCC 投遞的工具、算圖時呼叫的腳本 |
+| `bin\`：DCC wrapper，指向這台的安裝路徑 | |
+| `tmp\`：算圖暫存與快取 | |
+
+**放本機的理由**：RQD 開機就要啟動，那時網路磁碟機可能還沒就緒；從網路磁碟執行 Python
+既慢又不穩；wrapper 與設定檔的內容本來就每台不同。
+
+**放網路的理由**：所有機器要看到同一份。pipeline 工具放網路上，更新時只改一處，
+所有工作站與節點立刻生效，不會有某台還在用舊版的情況。
+
+pipeline 工具區的位置由工作室決定，本目錄的文件以 `P:\pipeline\opencue\` 為例：
+
+```
+P:\pipeline\opencue\
+    client\maya\      從 Maya 投遞的工具（03 第六節）
+    scripts\          算圖時由 job 呼叫的腳本
+```
+
+注意事項：
+
+- 路徑**不能有空白**（`03` 第七節）
+- 網路上的東西只能在網路磁碟就緒後使用。投遞工具在 artist 登入後才用，沒有問題；
+  算圖腳本在 frame 執行時才用，也沒有問題。RQD 本身不行，所以留在本機
+- 專職算圖機若以 Windows 服務執行，**看不看得到磁碟機代號還未驗證**（`02` 第八節）。
+  看不到的話，job 呼叫的腳本路徑要改用 UNC
+
+---
+
 ## 現成的 image
 
 已經 build 好的 image 公開在 GHCR，**不需登入即可 pull**，部署時不必自己 build：
@@ -126,5 +160,5 @@ notes/deploy/
 
   client/
     opencue-client.yaml         → %APPDATA%\opencue\opencue.yaml
-    maya/                       → C:\opencue\client\maya\，從 Maya 直接投遞的工具
+    maya/                       → P:\pipeline\opencue\client\maya\（網路空間），從 Maya 直接投遞的工具
 ```
