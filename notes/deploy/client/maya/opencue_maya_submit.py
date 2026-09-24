@@ -24,9 +24,27 @@ RENDER_WRAPPER = "C:/opencue/bin/Render-{version}.bat"
 SERVICE = "maya{version}"
 
 
+class MayaSettings(SettingsWidgets.InMayaSettings):
+    """InMayaSettings with a single camera, and no -cam when none is chosen.
+
+    Upstream sends the "[None]" label as the camera name when nothing is
+    selected, and joins several cameras into "a, b". Render.exe accepts
+    neither. Without -cam, Maya renders the scene's renderable cameras.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(MayaSettings, self).__init__(*args, **kwargs)
+        self.cameraSelector.multiselect = False
+
+    def getCommandData(self):
+        checked = self.cameraSelector.getChecked()
+        return {"mayaFile": self.mayaFileInput.text(),
+                "camera": checked[0] if checked else ""}
+
+
 class MayaJobTypes(JobTypes.JobTypes):
     MAYA = "Maya"
-    SETTINGS_MAP = {MAYA: SettingsWidgets.InMayaSettings}
+    SETTINGS_MAP = {MAYA: MayaSettings}
 
 
 def parse_args(argv):
@@ -35,6 +53,7 @@ def parse_args(argv):
     parser.add_argument("--version", required=True)
     parser.add_argument("--range", required=True)
     parser.add_argument("--cameras", nargs="*", default=[])
+    parser.add_argument("--renderable", nargs="*", default=[])
     return parser.parse_args(argv)
 
 
@@ -50,6 +69,8 @@ def build_window(args):
         cameras=args.cameras,
         parent=window)
     widget.frameBox.frameSpecInput.setText(args.range)
+    if len(args.renderable) == 1:
+        widget.settingsWidget.cameraSelector.setChecked(args.renderable)
     widget.servicesSelector.clearChecked()
     widget.servicesSelector.setChecked([SERVICE.format(version=args.version)])
     widget.jobDataChanged()

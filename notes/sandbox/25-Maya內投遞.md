@@ -134,7 +134,50 @@ Finished Rendering C:/Users/chordee/Documents/maya/projects/default/images/test.
 
 ---
 
-## 五、尚未驗證
+## 五、人工測試中發現的問題
+
+### 1. 沒選相機時送出 `-cam [None]`
+
+在 Maya 介面實際操作、沒有選相機就送出，10 個 frame 全部失敗：
+
+```
+Render-2027.bat -r file -s #FRAME_START# -e #FRAME_END# -cam [None] scene_luffy_test.ma
+
+Error: makeCameraRenderable.mel line 34: Camera [None] does not exist.
+// Maya exited with status 210
+```
+
+CueSubmit 的相機選單沒有選擇時，按鈕上顯示 `[None]`，而 `InMayaSettings.getCommandData()`
+直接把按鈕文字當成相機名稱。選了多台時則會送出 `-cam a, b`，同樣無法解析。
+先前以程式測試時有選相機，所以沒有發現。見 `05` 第 22 項。
+
+**修正**（`opencue_maya_submit.py` 的 `MayaSettings`）：
+
+| 操作 | 送出的指令 |
+|---|---|
+| 場景只有一台 renderable 相機 | 開啟時預先選好，`-cam <該相機>` |
+| 沒有選相機 | 不帶 `-cam`，由 Maya 算場景中所有 renderable 的相機 |
+| 選了多台 | 改為單選，只保留最後點的一台 |
+
+三種情況都已測試。
+
+### 2. 工作站同時開 Maya 又接算圖工作，記憶體耗盡
+
+本機同時是 artist 工作站與算圖節點。開著 Maya 送出 job 後，frame 派回同一台，
+好幾個 `Render.exe`（每個約 1 GB，外加 Arnold）同時執行：
+
+```
+MemTotal 40 GB、MemFree 約 4 GB、分頁檔已用約 14 GB
+PowerShell 無法啟動：The paging file is too small for this operation to complete
+```
+
+有兩個 frame 以 exit 304 在 1 秒內失敗、沒有任何輸出，推測是記憶體不足無法啟動程序。
+
+正式環境的工作站在上班時段由 CueNIMBY 鎖定，不會在 artist 使用中接工作，
+所以不會發生同樣的情況。本機測試時可以在投遞介面把 Cores 設大一點（例如 4），
+減少同時執行的 frame 數。
+
+## 六、尚未驗證
 
 | 項目 | 說明 |
 |---|---|

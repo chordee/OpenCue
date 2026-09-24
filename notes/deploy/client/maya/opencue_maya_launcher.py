@@ -50,6 +50,12 @@ def _cameras():
     return sorted(set(cmds.listRelatives(shapes, parent=True) or []))
 
 
+def _renderable_cameras():
+    shapes = [s for s in (cmds.ls(type="camera") or [])
+              if cmds.getAttr(s + ".renderable")]
+    return sorted(set(cmds.listRelatives(shapes, parent=True) or []))
+
+
 def _version():
     return cmds.about(version=True).split()[0]
 
@@ -73,7 +79,8 @@ def build_command():
              "--file", scene,
              "--version", _version(),
              "--range", _frame_range(),
-             "--cameras"] + _cameras())
+             "--cameras"] + _cameras()
+            + ["--renderable"] + _renderable_cameras())
 
 
 def submit():
