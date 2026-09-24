@@ -151,6 +151,7 @@ RQD 在 Windows 以 `taskkill /F /T /PID` 結束整個程序樹（`rqnetwork.py:
 
 - venv 安裝 RQD 與 `ocrun`，設定檔放在 `/opt/opencue/dcc.toml`
 - RQD 的啟動方式（systemd），同樣要把 venv 的 `bin` 加進 PATH，並設定 `RQD_USE_PATH_ENV_VAR = 1`
+- `TZ` 的處理與 Windows 不同：Linux 上空的 `TZ` 代表 UTC，見 [`29`](29-frame的時區.md)
 
 以下是換成 Python 也不會自動解決的，**都還沒做**：
 
@@ -167,4 +168,4 @@ RQD 在 Windows 以 `taskkill /F /T /PID` 結束整個程序樹（`rqnetwork.py:
 
 - **在「DCC 裝在不同路徑」的第二台機器上使用**：本機只有一台 Windows 節點
 - **實際的 Linux 算圖節點**：只在容器中驗證了 `ocrun` 本身，沒有 DCC
-- `MAYA_DISABLE_CER` 的效果（同 [`25` 第五節](25-Maya內投遞.md#五人工測試中發現的問題)）
+- `MAYA_DISABLE_CER` 對 Maya 本體當機的效果。授權模組的回報視窗它關不掉，見 [`28`](28-Maya結束時跳出錯誤回報.md)

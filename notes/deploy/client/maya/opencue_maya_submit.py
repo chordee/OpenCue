@@ -5,7 +5,7 @@
 # with the scene, cameras and frame range, and bound to the Maya version the
 # scene came from:
 #     render command  ocrun maya <version> Render
-#     service         maya<version>
+#     service         the one whose tags hold maya_<version>
 #
 # Chinese documentation: notes/deploy/03.
 
@@ -14,6 +14,7 @@ import sys
 
 from qtpy import QtWidgets
 
+import opencue
 from cuesubmit import Constants
 from cuesubmit import JobTypes
 from cuesubmit.ui import SettingsWidgets
@@ -21,7 +22,7 @@ from cuesubmit.ui import Style
 from cuesubmit.ui import Submit
 
 RENDER_CMD = "ocrun maya {version} Render"
-SERVICE = "maya{version}"
+VERSION_TAG = "maya_{version}"
 
 
 class MayaSettings(SettingsWidgets.InMayaSettings):
@@ -45,6 +46,14 @@ class MayaSettings(SettingsWidgets.InMayaSettings):
 class MayaJobTypes(JobTypes.JobTypes):
     MAYA = "Maya"
     SETTINGS_MAP = {MAYA: MayaSettings}
+
+
+def find_service(version):
+    tag = VERSION_TAG.format(version=version.replace(".", "_"))
+    for service in opencue.api.getDefaultServices():
+        if tag in service.tags():
+            return service.name()
+    return None
 
 
 def parse_args(argv):
@@ -71,13 +80,18 @@ def build_window(args):
     widget.frameBox.frameSpecInput.setText(args.range)
     if len(args.renderable) == 1:
         widget.settingsWidget.cameraSelector.setChecked(args.renderable)
+    service = find_service(args.version)
     widget.servicesSelector.clearChecked()
-    widget.servicesSelector.setChecked([SERVICE.format(version=args.version)])
+    if service:
+        widget.servicesSelector.setChecked([service])
     widget.jobDataChanged()
 
     window.setStyleSheet(Style.MAIN_WINDOW)
     window.setCentralWidget(widget)
-    window.setWindowTitle("Submit Maya {0} to OpenCue".format(args.version))
+    title = "Submit Maya {0} to OpenCue".format(args.version)
+    if not service:
+        title += " - no service for this version, pick one"
+    window.setWindowTitle(title)
     window.resize(650, 1000)
     return window, widget
 

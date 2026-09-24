@@ -38,13 +38,24 @@ repo 沒有 Houdini 外掛。比照 [`25`](25-Maya內投遞.md) 的兩段式，�
 | File Cache（SOP，`filecache::2.0`） | `hou.SopNode` | 設定 `trange`、`f` 後按 `execute` |
 | Karma（LOP） | `hou.LopNode` | 同上 |
 
-共同點是都有 `execute`、`trange`、`f1`，啟動器以此判斷「可算的節點」。
-鎖定的 HDA 內部不搜尋（例如 `/out/karma1` 裡的 `rop_usdrender`）。
+啟動器收入**所有 `hou.RopNode`**，加上白名單中的非 ROP 類型（`filecache::2.0`、`karma`），
+而且要有 `trange` 與 `f1`（算圖腳本靠它們設定 frame 範圍）。鎖定的 HDA 內部不搜尋（例如 `/out/karma1` 裡的 `rop_usdrender`）。
+
+第一版的判斷是「有 `execute`、`trange`、`f1` 就收」，太寬：任何帶有這三個參數的 HDA 都會被收進來。
+改成現在的規則後在 hython 實測：
+
+| 節點 | 舊規則 | 新規則 |
+|---|---|---|
+| 原本的四個（File Cache ×2、ROP Geometry、Karma LOP） | 收 | 收 |
+| `/out` 的 Mantra ROP（`ifd`） | 收 | 收 |
+| 一般的 null，加上 `execute`、`trange`、`f1` 參數 | **收** | 不收 |
+| `/out` 的 merge ROP（沒有 `trange`） | 不收 | 不收 |
 
 ### 模擬的判斷
 
 File Cache 的 **Cache Simulation**（`cachesim`）或 ROP 的 **Initialize Simulation OPs**（`initsim`）打開時，
 預設「整段一個 task」。只轉換格式的快取可以每格拆開，所以不能只看節點類型。
+這只是預設值：DOP、TOP 與第三方的快取節點都認不出來，最後由 artist 在投遞視窗確認。
 
 ---
 

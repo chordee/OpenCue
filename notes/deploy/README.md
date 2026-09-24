@@ -51,8 +51,11 @@ pipeline 工具區的位置由工作室決定，本目錄的文件以 `P:\pipeli
 | 位置 | 內容 |
 |---|---|
 | `P:\pipeline\opencue\client\maya\` | 從 Maya 投遞的工具，見 [`03` 第六節](03-工作站.md#六從-maya-直接投遞) |
-| `P:\pipeline\opencue\client\houdini\` | 從 Houdini 投遞的工具與節點上執行的算圖腳本，見 [`03` 第七節](03-工作站.md#七從-houdini-直接投遞) |
-| `P:\pipeline\opencue\scripts\` | 算圖時由 job 呼叫的腳本 |
+| `P:\pipeline\opencue\releases\<工具版本>\client\houdini\` | 從 Houdini 投遞的工具與節點上執行的算圖腳本，見 [`03` 第七節](03-工作站.md#七從-houdini-直接投遞) |
+| `P:\pipeline\opencue\releases\<工具版本>\...` | 其他算圖時由 job 呼叫的腳本 |
+
+**算圖時才會讀的檔案，放在版本目錄，發布後不再修改**；排隊中的 job 才不會用到送出之後才更新的版本。
+只在投遞時用的檔案（例如 Maya 的投遞工具）可以直接覆蓋。見 [`04` 第八節](04-維運.md#八pipeline-工具的發布)。
 
 注意事項：
 
@@ -168,5 +171,5 @@ pipeline 工具區的位置由工作室決定，本目錄的文件以 `P:\pipeli
 |---|---|---|
 | [`client/opencue-client.yaml`](client/opencue-client.yaml) | `%APPDATA%\opencue\opencue.yaml` | 用戶端工具的連線設定 |
 | [`client/maya/`](client/maya/) | `P:\pipeline\opencue\client\maya\`（網路空間） | 從 Maya 直接投遞的工具 |
-| [`client/houdini/`](client/houdini/) | `P:\pipeline\opencue\client\houdini\`（網路空間） | 從 Houdini 直接投遞的工具、算圖腳本 |
+| [`client/houdini/`](client/houdini/) | `P:\pipeline\opencue\releases\<工具版本>\client\houdini\`（網路空間） | 從 Houdini 直接投遞的工具、算圖腳本 |
 | [`client/houdini/opencue.json`](client/houdini/opencue.json) | Houdini 的 packages 目錄 | 把上一列的目錄加進 Houdini 的 `PYTHONPATH` |

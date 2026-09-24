@@ -191,6 +191,10 @@ PowerShell 無法啟動：The paging file is too small for this operation to com
 Maya 2027 的執行檔中有 `MAYA_DISABLE_CER` 這個環境變數，已加進兩支 Maya wrapper。
 加入後 wrapper 照常算圖；**關閉回報視窗的效果未實測**（需要讓 Maya 當掉才能驗證）。
 
+> 後續查證：這兩次測試的每一格 Maya 其實都會在結束時跳出回報視窗（22:31 那次事件紀錄雖然是空的，
+> 授權模組的 CER 紀錄仍有 8 個 dump）。原因是 frame 缺少 `ALLUSERSPROFILE`，當掉的是授權模組，
+> `MAYA_DISABLE_CER` 關不掉。見 [`28`](28-Maya結束時跳出錯誤回報.md)。
+
 正式環境的工作站在上班時段由 CueNIMBY 鎖定，不會在 artist 使用中接工作，
 所以不會發生同樣的情況。本機測試時可以在投遞介面把 Cores 設大一點（例如 4），
 減少同時執行的 frame 數。
@@ -223,4 +227,4 @@ CueWeb 的「Autoload Mine」以登入帳號判斷「我的」job（`cueweb/app/
 |---|---|
 | 舊版 Maya | 本機只有 2027；語法相容 Python 2.7，但未實際執行 |
 | Nuke 外掛 | 未安裝 |
-| Houdini | 沒有現成外掛，未製作 |
+| Houdini | 已比照製作，見 [`27`](27-Houdini內投遞.md) |

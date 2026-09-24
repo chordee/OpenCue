@@ -29,8 +29,15 @@ CREATE_NO_WINDOW = 0x08000000
 # different version and must not see them.
 _INHERITED_PREFIXES = ("PYTHON", "QT_", "QTDIR", "PYSIDE")
 
-# Parameters that mean "this cache is a simulation": it has to be cooked from
-# its first frame, in order, so it cannot be split into one task per frame.
+# Nodes that are not RopNodes but write to disk through an execute button.
+# opencue_houdini_render.py sets their frame range and presses it. Add a type
+# here only after testing it.
+_OTHER_RENDER_TYPES = ("filecache::2.0", "karma")
+
+# Parameters that suggest "this cache is a simulation": it has to be cooked
+# from its first frame, in order, so it cannot be split into one task per frame.
+# Only a default for the submit window; DOP, TOP and third-party cache nodes
+# are not recognised, so the artist has to check it.
 _SIMULATION_PARMS = ("cachesim", "initsim")
 
 
@@ -55,9 +62,11 @@ def _hip():
 
 
 def _is_render_node(node):
-    # ROPs, and the SOP / LOP nodes that write to disk (File Cache, Karma),
-    # all have a frame range and an execute button.
-    if node.parm("execute") is None or node.parm("trange") is None or node.parm("f1") is None:
+    # Every ROP, plus the listed non-ROP nodes that write to disk.
+    if not (isinstance(node, hou.RopNode) or node.type().name() in _OTHER_RENDER_TYPES):
+        return False
+    # opencue_houdini_render.py drives the frame range through these.
+    if node.parm("trange") is None or node.parm("f1") is None:
         return False
     return not getattr(node, "isBypassed", lambda: False)()
 
