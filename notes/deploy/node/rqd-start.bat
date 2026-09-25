@@ -24,7 +24,7 @@ setlocal
 set OPENCUE_HOME=C:\opencue
 set OPENCUE_VENV=%OPENCUE_HOME%\venv
 
-REM Node role: workstation = artist machine, needs CueNIMBY scheduling
+REM EDIT: node role. workstation = artist machine, needs CueNIMBY scheduling
 REM            render      = dedicated render node, no CueNIMBY
 set NODE_ROLE=render
 

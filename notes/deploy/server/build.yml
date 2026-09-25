@@ -16,7 +16,7 @@ services:
   flyway:
     build:
       context: ../../..
-      dockerfile: sandbox/flyway.Dockerfile
+      dockerfile: notes/deploy/server/flyway.Dockerfile
 
   cuebot:
     build:

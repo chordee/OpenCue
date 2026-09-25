@@ -13,7 +13,7 @@ cuebot.facility_default: local
 cuebot.facility:
     local:
         # 改成正式環境那台 Linux 主機的名稱或 IP
-        - linux-server.studio.local:8443
+        - opencue-server.studio.local:8443
 
 # 逾時與重試（沿用 default.yaml 的值，通常不需要改）
 cuebot.timeout: 10000
