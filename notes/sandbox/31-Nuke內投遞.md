@@ -93,11 +93,22 @@ PASS  command, one write:  ocrun nuke 17.0v1 Nuke17.0 -F #FRAMESPEC# -X WriteA -
 
 `--submit` 實際送出，兩個 job 各 5 格全部成功，`a.0001`～`0005`、`b.0001`～`0005` 都有輸出。
 
+### 4. 在 Nuke 介面中投遞
+
+開啟測試 script，由 Script Editor 呼叫 `submit()` 送出 1-5 格（Write 全選）：
+
+```
+ocrun nuke 17.0v1 Nuke17.0 -F #FRAMESPEC# -x C:/opencue/scenes/nuke_submit_test.nk   service nuke17
+```
+
+送出時是白天，本機被 CueNIMBY 依排程鎖定，frame 停在 WAITING（正確行為）。暫時解鎖後 5 格全部成功，
+第 1 格 40 秒（Nuke 冷啟動），其餘各 3 秒，`a`、`b` 兩組輸出齊全；算完後再鎖回去。
+
 ---
 
 ## 四、尚未驗證
 
-- **在 Nuke 介面中人工操作**：選單、存檔詢問、Write 節點選單
+- 選單項目（需要把工具目錄加進 `NUKE_PATH` 後重開 Nuke）、存檔詢問、在介面中只選部分 Write 節點
 - 停用的 Write 節點不列入（程式有處理，未實測）
 - 其他 Nuke 版本、Python 2.7 的舊版 Nuke
 - NukeX、Nuke Studio 的授權與執行檔名稱
