@@ -88,6 +88,11 @@ class OcrunTest(unittest.TestCase):
             self.assertEqual(ocrun.main(["maya", "2027", "decoy"]), 127)
         finally:
             os.chdir(cwd)
+
+    def test_program_with_a_path_is_rejected(self):
+        self.assertEqual(ocrun.main(["maya", "2027", sys.executable]), 127)
+        self.assertEqual(ocrun.main(["maya", "2027", os.path.join("..", os.path.basename(BINDIR),
+                                                                  PROGRAM)]), 127)
         self.assertEqual(ocrun.main(["maya", "2027", "no_such_program"]), 127)
 
     def test_console_script(self):

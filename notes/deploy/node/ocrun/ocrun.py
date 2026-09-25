@@ -92,6 +92,8 @@ def main(argv=None):
 
 def find_program(bindir, program):
     """Look only in bindir: shutil.which also searches the current directory on Windows."""
+    if os.path.basename(program) != program or program in (".", ".."):
+        return None
     exts = os.environ.get("PATHEXT", ".EXE").split(os.pathsep) if os.name == "nt" else []
     for ext in [""] + exts:
         candidate = os.path.join(bindir, program + ext)
