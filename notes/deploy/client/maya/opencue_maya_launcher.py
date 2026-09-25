@@ -11,6 +11,7 @@
 #
 # Chinese documentation: notes/deploy/03.
 
+import io
 import os
 import subprocess
 import tempfile
@@ -95,9 +96,12 @@ def _start(cmd):
     try:
         if not os.path.isdir(os.path.dirname(LOG)):
             os.makedirs(os.path.dirname(LOG))
-        with open(LOG, "a") as log:
-            log.write("\n=== %s %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), " ".join(cmd)))
-            log.flush()
+        with io.open(LOG, "a", encoding="utf-8") as log:
+            try:
+                log.write(u"\n=== %s %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), " ".join(cmd)))
+                log.flush()
+            except UnicodeError:
+                pass  # Python 2 with non-ASCII bytes in a path: skip the header, still start
             subprocess.Popen(cmd, env=_clean_env(), creationflags=CREATE_NO_WINDOW,
                              stdout=log, stderr=subprocess.STDOUT)
     except (OSError, IOError) as e:

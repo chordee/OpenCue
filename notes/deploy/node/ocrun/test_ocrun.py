@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import unittest.mock
 
 import ocrun
 
@@ -20,9 +21,14 @@ class OcrunTest(unittest.TestCase):
         with open(config, "w") as f:
             f.write('[env]\nSTUDIO_LICENSE = "5053@lic"\n'
                     "[maya]\n\"2027\" = '%s'\n" % BINDIR)
+        # Restored after each test, whatever the test changes.
+        environ = unittest.mock.patch.dict(os.environ)
+        environ.start()
+        self.addCleanup(environ.stop)
         os.environ["OPENCUE_DCC_CONFIG"] = config
         os.environ["TMP"] = self.tmp
         os.environ.pop("TEMP", None)
+        os.environ.pop("STUDIO_LICENSE", None)
 
     def run_py(self, code, product="maya"):
         out = os.path.join(self.tmp, "out.txt")
@@ -46,10 +52,7 @@ class OcrunTest(unittest.TestCase):
 
     def test_job_environment_wins_over_config(self):
         os.environ["STUDIO_LICENSE"] = "job@lic"
-        try:
-            rc, env = self.run_py("os.environ.get('STUDIO_LICENSE')")
-        finally:
-            del os.environ["STUDIO_LICENSE"]
+        rc, env = self.run_py("os.environ.get('STUDIO_LICENSE')")
         self.assertEqual(rc, 0)
         self.assertEqual(eval(env), "job@lic")
 

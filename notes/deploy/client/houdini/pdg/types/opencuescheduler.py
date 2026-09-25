@@ -39,6 +39,7 @@ CREATE_NO_WINDOW = 0x08000000
 _INHERITED_PREFIXES = ("PYTHON", "QT_", "QTDIR", "PYSIDE")
 _DONE = (pdg.workItemState.CookedSuccess, pdg.workItemState.CookedFail,
          pdg.workItemState.CookedCancel, pdg.workItemState.CookedCache)
+_FRAME_DONE = ("SUCCEEDED", "DEAD", "EATEN", "KILLED")
 
 
 def _clean_env():
@@ -178,7 +179,15 @@ class OpenCueScheduler(CallbackServerMixin, PyScheduler):
         return env
 
     def _submit(self):
+        """One job per TOP node: its name, layer and log paths come from the node."""
         tasks, self.pending = self.pending, []
+        by_node = {}
+        for task in tasks:
+            by_node.setdefault(task["node"], []).append(task)
+        for node_tasks in by_node.values():
+            self._submitNode(node_tasks)
+
+    def _submitNode(self, tasks):
         self.batch += 1
         version = hou.applicationVersionString()
         python = "{0}{1}".format(sys.version_info.major, sys.version_info.minor)
@@ -232,16 +241,19 @@ class OpenCueScheduler(CallbackServerMixin, PyScheduler):
             states = reply.get(job, {})
             running = False
             for frame, item_id in items.items():
+                state = states.get(str(frame))
+                if state not in _FRAME_DONE:
+                    # Keep the job until every frame has ended, even one whose
+                    # work item PDG already cancelled, so a cancel can still kill it.
+                    running = True
+                    continue
                 work_item = graph.workItemById(item_id)
                 if work_item is None or work_item.state in _DONE:
                     continue
-                state = states.get(str(frame))
                 if state == "SUCCEEDED":
                     self.workItemSucceeded(item_id, -1, 0.0)
-                elif state in ("DEAD", "EATEN"):
-                    self.workItemFailed(item_id, -1)
                 else:
-                    running = True
+                    self.workItemFailed(item_id, -1)
             if not running:
                 del self.jobs[job]
 

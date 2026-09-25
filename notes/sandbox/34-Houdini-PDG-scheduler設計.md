@@ -115,6 +115,8 @@ ocrun houdini <版本> hython <版本目錄>/opencue_pdg_task.py <task 目錄> #
 | Houdini 21.0.729，從版本目錄 `2026.09.25.3` 以 package 載入 | 5 個全部成功，service 自動用 `houdini2107` |
 | **Houdini 介面**（使用者操作），21 與 22 各自依序 cook `work`、`collect` | 每個節點一個 job（20 格、5 格），全部成功；同一個工作階段中上游沒有重新 cook |
 | work item 視窗的 Output Log | 顯示該格 frame 的 RQD log（修正連結格式後） |
+| 兩個節點的 work item 同時變成可執行（Merge 接兩條分支） | 修正前併成一個 job（layer 名稱、log 路徑都用第一個節點的）；修正後每個節點一個 job |
+| 在 OpenCue 端砍掉整個 job | 沒跑完的 frame 會停在 WAITING，helper 將已結束 job 中未完成的 frame 回報為 `KILLED`，cook 正常結束、work item 判定失敗 |
 
 新的 hython 工作階段 cook 下游時，上游會先重新 cook 一次（多一個 job）。在介面中同一個工作階段依序 cook 則不會。
 

@@ -45,13 +45,23 @@ def _jobs(names):
 
 
 def status(request):
-    """Frame states of each job, {job: {frame number: state name}}."""
+    """Frame states of each job, {job: {frame number: state name}}.
+
+    A killed job leaves its unfinished frames WAITING for good; those are
+    reported as KILLED so the scheduler can stop waiting for them.
+    """
     reply = {}
     for job in _jobs(request["jobs"]):
+        finished = job.data.state == opencue.api.job_pb2.FINISHED
         # A frame search returns 500 frames unless told otherwise.
         frames = job.getFrames(limit=job.data.job_stats.total_frames or 1)
-        reply[job.name()] = dict(
-            (str(f.number()), opencue.api.job_pb2.FrameState.Name(f.state())) for f in frames)
+        states = {}
+        for frame in frames:
+            state = opencue.api.job_pb2.FrameState.Name(frame.state())
+            if finished and state not in ("SUCCEEDED", "DEAD", "EATEN"):
+                state = "KILLED"
+            states[str(frame.number())] = state
+        reply[job.name()] = states
     return reply
 
 

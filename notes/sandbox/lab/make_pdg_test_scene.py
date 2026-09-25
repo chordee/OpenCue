@@ -7,6 +7,7 @@
     work     Python Script（外部程序，Hython）：寫一個小檔案、設定屬性 square、睡 2 秒（有 slow.<index> 標記檔時 90 秒）；
              pdg_out 裡有 fail.<index> 標記檔時以 exit 1 結束
     collect  Python Script（外部程序，PDG Python）：讀上游的輸出檔與屬性，寫出彙整
+    gen2 → work2  另一條分支（3 個 work item），both 以 Merge 接上 work 與 work2
     opencue  OpenCue scheduler（topnet 的預設 scheduler）
 """
 import sys
@@ -54,6 +55,17 @@ collect.setInput(0, work)
 collect.parm("pdg_cooktype").set(2)
 collect.parm("pythonbin").set(1)  # PDG Python
 collect.parm("script").set(COLLECT)
+
+# Two branches that become ready together: cooking "both" must give one job per node.
+gen2 = net.createNode("genericgenerator", "gen2")
+gen2.parm("itemcount").set(3)
+work2 = net.createNode("pythonscript", "work2")
+work2.setInput(0, gen2)
+work2.parm("pdg_cooktype").set(2)
+work2.parm("script").set(WORK.replace("work.{0:04d}", "work2.{0:04d}"))
+both = net.createNode("merge", "both")
+both.setInput(0, work)
+both.setInput(1, work2)
 
 net.layoutChildren()
 hou.hipFile.save("P:/projects/opencue_test/scenes/pdg_test.hip")
