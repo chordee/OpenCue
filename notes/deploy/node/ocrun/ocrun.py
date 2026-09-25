@@ -51,7 +51,13 @@ def build_env(config, product):
     if tmp:
         env.setdefault("TEMP", tmp)
     env.update(PRODUCT_ENV.get(product, {}))
-    env.update(config.get("env", {}))
+    # dcc.toml only fills in defaults: a variable the job sets wins. Windows
+    # names are case-insensitive, so compare them that way there.
+    fold = str.upper if os.name == "nt" else str
+    present = set(fold(k) for k in env)
+    for key, value in config.get("env", {}).items():
+        if fold(key) not in present:
+            env[key] = value
     if product == "nuke" and "NUKE_DISK_CACHE" not in env:
         # Without it Nuke falls back to C:\temp\nuke, which does not exist on a
         # render node, and every frame fails.

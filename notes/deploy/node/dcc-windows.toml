@@ -14,6 +14,7 @@
 
 # Environment for every DCC. RQD does NOT pass the interactive user's
 # environment to frames, so license servers must be set here.
+# These are defaults: a variable the job sets (layer env) wins.
 # Arnold (MtoA) needs its license server here: without it every Arnold frame
 # aborts with "license checkout error". ocrun turns that into a failed frame;
 # before ocrun checked the output, Render exited 0 and the frame counted as

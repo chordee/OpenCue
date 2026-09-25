@@ -44,6 +44,15 @@ class OcrunTest(unittest.TestCase):
                                      "STUDIO_LICENSE": "5053@lic",
                                      "TEMP": self.tmp})
 
+    def test_job_environment_wins_over_config(self):
+        os.environ["STUDIO_LICENSE"] = "job@lic"
+        try:
+            rc, env = self.run_py("os.environ.get('STUDIO_LICENSE')")
+        finally:
+            del os.environ["STUDIO_LICENSE"]
+        self.assertEqual(rc, 0)
+        self.assertEqual(eval(env), "job@lic")
+
     def test_arguments_with_spaces_pass_through(self):
         out = os.path.join(self.tmp, "a b.txt")
         rc = ocrun.main(["maya", "2027", PROGRAM, "-c",
