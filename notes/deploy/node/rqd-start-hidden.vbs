@@ -10,6 +10,6 @@
 '
 ' Dedicated render nodes: use a Windows service instead of this file.
 '
-' NOT YET TESTED: installing this file was not verified in the sandbox.
+' Running this file by hand was tested; starting it at logon was not.
 
 CreateObject("Wscript.Shell").Run "C:\opencue\rqd-start.bat", 0, False
