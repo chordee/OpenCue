@@ -76,6 +76,15 @@ class NukeJobTypes(JobTypes.JobTypes):
     SETTINGS_MAP = {JobTypes.JobTypes.SHELL: NukeSettings}
 
 
+class NukeSubmitWidget(Submit.CueSubmitWidget):
+    """No Write node checked would drop -X and render all of them."""
+
+    def validate(self, jobData):
+        if not self.settingsWidget.getCommandData()["writes"]:
+            return self.errorInJobData("ERROR: Job not submitted!\nPick at least one Write node.")
+        return super(NukeSubmitWidget, self).validate(jobData)
+
+
 def find_service(version):
     tag = VERSION_TAG.format(version=version.replace(".", "_"))
     for service in opencue.api.getDefaultServices():
@@ -92,7 +101,7 @@ def parse_args(argv):
 
 def build_window(info):
     window = QtWidgets.QMainWindow()
-    widget = Submit.CueSubmitWidget(
+    widget = NukeSubmitWidget(
         settingsWidgetType=NukeJobTypes.SHELL,
         jobTypes=NukeJobTypes,
         info=info,

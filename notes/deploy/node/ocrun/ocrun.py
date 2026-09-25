@@ -13,7 +13,6 @@ the same on every node, whatever the OS.
 ASCII ONLY.
 """
 import os
-import shutil
 import subprocess
 import sys
 import tomllib
@@ -79,7 +78,7 @@ def main(argv=None):
         print("[ocrun] %s %s is not configured in %s" % (product, version, path),
               file=sys.stderr)
         return 127
-    exe = shutil.which(program, path=bindir)
+    exe = find_program(bindir, program)
     if not exe:
         print("[ocrun] %s not found in %s" % (program, bindir), file=sys.stderr)
         return 127
@@ -89,6 +88,16 @@ def main(argv=None):
     if not patterns:
         return subprocess.call([exe] + args, env=build_env(config, product))
     return run_checked(exe, args, build_env(config, product), patterns)
+
+
+def find_program(bindir, program):
+    """Look only in bindir: shutil.which also searches the current directory on Windows."""
+    exts = os.environ.get("PATHEXT", ".EXE").split(os.pathsep) if os.name == "nt" else []
+    for ext in [""] + exts:
+        candidate = os.path.join(bindir, program + ext)
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return None
 
 
 def run_checked(exe, args, env, patterns):

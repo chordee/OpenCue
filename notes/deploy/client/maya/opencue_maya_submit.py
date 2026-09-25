@@ -36,6 +36,8 @@ class MayaSettings(SettingsWidgets.InMayaSettings):
     def __init__(self, *args, **kwargs):
         super(MayaSettings, self).__init__(*args, **kwargs)
         self.cameraSelector.multiselect = False
+        # Upstream only watches the file field, so a camera change never reached the layer.
+        self.cameraSelector.optionsMenu.triggered.connect(lambda: self.dataChanged.emit(None))
 
     def getCommandData(self):
         checked = self.cameraSelector.getChecked()

@@ -85,6 +85,11 @@ def check_maya(submit):
           "-cam renderCam1 P:/projects/opencue_test/scenes/test.ma")
     if submit:
         widget.submit()
+    for action in widget.settingsWidget.cameraSelector.optionsMenu.actions():
+        if action.text() == "front":
+            action.trigger()
+    check("camera change reaches the layer",
+          widget.jobTreeWidget.currentLayerData.cmd["camera"], "front")
     window.close()
 
 
@@ -132,6 +137,10 @@ def check_nuke(submit):
           "ocrun nuke 17.0v1 Nuke17.0 -F #FRAMESPEC# -X WriteA -x " + NUKE_SCRIPT)
     if submit:
         widget.submit()
+    for action in widget.settingsWidget.writeSelector.optionsMenu.actions():
+        if action.text() == "WriteA":
+            action.trigger()
+    check("no write checked is rejected", widget.validate(widget.getJobData()), False)
     window.close()
 
 

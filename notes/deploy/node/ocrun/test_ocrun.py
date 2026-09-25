@@ -78,6 +78,16 @@ class OcrunTest(unittest.TestCase):
     def test_unknown_version_or_program(self):
         self.assertEqual(ocrun.main(["maya", "2024", PROGRAM]), 127)
         self.assertEqual(ocrun.main(["houdini", "22.0.429", "hython"]), 127)
+
+    def test_program_only_from_bindir(self):
+        with open(os.path.join(self.tmp, "decoy.exe"), "w") as f:
+            f.write("")
+        cwd = os.getcwd()
+        os.chdir(self.tmp)
+        try:
+            self.assertEqual(ocrun.main(["maya", "2027", "decoy"]), 127)
+        finally:
+            os.chdir(cwd)
         self.assertEqual(ocrun.main(["maya", "2027", "no_such_program"]), 127)
 
     def test_console_script(self):
