@@ -21,9 +21,18 @@ from qtpy import QtWidgets
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CLIENT = os.path.join(HERE, "..", "..", "deploy", "client")
-sys.path.insert(0, os.path.join(CLIENT, "maya"))
-sys.path.insert(0, os.path.join(CLIENT, "houdini"))
-sys.path.insert(0, os.path.join(CLIENT, "nuke"))
+
+# The tools are imported from the repo by default. Point these at the installed
+# copies (for example P:/pipeline/opencue/client/maya) to test an installation.
+ap = argparse.ArgumentParser()
+ap.add_argument("--submit", action="store_true", help="實際送出 job")
+ap.add_argument("--maya-dir", default=os.path.join(CLIENT, "maya"))
+ap.add_argument("--houdini-dir", default=os.path.join(CLIENT, "houdini"))
+ap.add_argument("--nuke-dir", default=os.path.join(CLIENT, "nuke"))
+ARGS = ap.parse_args()
+sys.path.insert(0, ARGS.maya_dir)
+sys.path.insert(0, ARGS.houdini_dir)
+sys.path.insert(0, ARGS.nuke_dir)
 
 import opencue_houdini_submit  # noqa: E402
 import opencue_maya_submit  # noqa: E402
@@ -127,13 +136,12 @@ def check_nuke(submit):
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--submit", action="store_true", help="實際送出 job")
-    args = ap.parse_args()
-    app = QtWidgets.QApplication(sys.argv)  # noqa: F841
-    check_maya(args.submit)
-    check_houdini(args.submit)
-    check_nuke(args.submit)
+    app = QtWidgets.QApplication(sys.argv[:1])  # noqa: F841
+    print("tools:", opencue_maya_submit.__file__, opencue_houdini_submit.__file__,
+          opencue_nuke_submit.__file__, sep="\n  ")
+    check_maya(ARGS.submit)
+    check_houdini(ARGS.submit)
+    check_nuke(ARGS.submit)
     print("\n{0} failure(s)".format(len(FAILURES)))
     return 1 if FAILURES else 0
 

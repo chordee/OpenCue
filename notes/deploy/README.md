@@ -74,11 +74,11 @@ pipeline 工具區的位置由工作室決定，本目錄的文件以 `P:\pipeli
 
 | 元件 | image |
 |---|---|
-| Cuebot | `ghcr.io/chordee/opencue/cuebot:1.34.4-1d73523b` |
-| Flyway（DB migration） | `ghcr.io/chordee/opencue/flyway:1.34.4-1d73523b` |
-| REST Gateway | `ghcr.io/chordee/opencue/rest-gateway:1.34.4-1d73523b` |
-| CueWeb | `ghcr.io/chordee/opencue/cueweb:1.34.4-1d73523b` |
-| init（建立 show / service） | `ghcr.io/chordee/opencue/init:1.34.4-1d73523b` |
+| Cuebot | `ghcr.io/chordee/opencue/cuebot:1.34.4-1acac546` |
+| Flyway（DB migration） | `ghcr.io/chordee/opencue/flyway:1.34.4-1acac546` |
+| REST Gateway | `ghcr.io/chordee/opencue/rest-gateway:1.34.4-1acac546` |
+| CueWeb | `ghcr.io/chordee/opencue/cueweb:1.34.4-1acac546` |
+| init（建立 show / service） | `ghcr.io/chordee/opencue/init:1.34.4-1acac546` |
 
 - [`server/env.example`](server/env.example) 的預設值就是這一組
 - 只有 **amd64**（Intel / AMD 的 x86-64 主機）
