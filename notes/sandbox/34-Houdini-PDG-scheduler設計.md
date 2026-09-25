@@ -112,11 +112,12 @@ ocrun houdini <版本> hython <版本目錄>/opencue_pdg_task.py <task 目錄> #
 | cook 途中取消 | PDG 顯示取消，OpenCue 的 job 被砍，節點上沒有殘留程序 |
 | **300 個 work item** | **一個 300 格的 job**，全部成功，820 秒。每格約 22 秒，大部分是 hython 的啟動時間 |
 | Houdini 21.0.729，從版本目錄 `2026.09.25.3` 以 package 載入 | 5 個全部成功，service 自動用 `houdini2107` |
+| **Houdini 介面**（使用者操作），21 與 22 各自依序 cook `work`、`collect` | 每個節點一個 job（20 格、5 格），全部成功；同一個工作階段中上游沒有重新 cook |
 
 新的 hython 工作階段 cook 下游時，上游會先重新 cook 一次（多一個 job）。在介面中同一個工作階段依序 cook 則不會。
 
 ### 尚未驗證
 
-- 在 Houdini 介面中操作（包括 `getLogURI` 開啟 frame log）
+- 從介面開啟 frame log（`getLogURI`）
 - 節點與工作站是不同機器時，callback server 的連線與防火牆
 - ROP Fetch、ROP Geometry 等實際的算圖節點
