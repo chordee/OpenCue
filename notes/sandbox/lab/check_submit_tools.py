@@ -30,7 +30,7 @@ import opencue_maya_submit  # noqa: E402
 import opencue_nuke_submit  # noqa: E402
 from cuesubmit import Submission  # noqa: E402
 
-HIP = "C:/opencue/scenes/hou_submit_test.hip"
+HIP = "P:/projects/opencue_test/scenes/hou_submit_test.hip"
 HOUDINI_INFO = {
     "hip": HIP, "version": "22.0.429", "selected": "/obj/geo1/convert_cache",
     "nodes": [
@@ -40,7 +40,7 @@ HOUDINI_INFO = {
          "simulation": True},
     ],
 }
-NUKE_SCRIPT = "C:/opencue/scenes/nuke_submit_test.nk"
+NUKE_SCRIPT = "P:/projects/opencue_test/scenes/nuke_submit_test.nk"
 NUKE_INFO = {"script": NUKE_SCRIPT, "version": "17.0v1", "range": "1-5",
              "writes": ["WriteA", "Comp.WriteB"]}
 FAILURES = []
@@ -65,7 +65,7 @@ def fill(widget, name):
 def check_maya(submit):
     print("--- Maya")
     args = opencue_maya_submit.parse_args([
-        "--file", "C:/opencue/scenes/test.ma", "--version", "2027", "--range", "1-2",
+        "--file", "P:/projects/opencue_test/scenes/test.ma", "--version", "2027", "--range", "1-2",
         "--cameras", "front", "persp", "renderCam1", "--renderable", "renderCam1"])
     window, widget = opencue_maya_submit.build_window(args)
     layer = fill(widget, "check_maya")
@@ -73,7 +73,7 @@ def check_maya(submit):
     check("range", layer.layerRange, "1-2")
     check("command", Submission.buildLayerCommand(layer),
           "ocrun maya 2027 Render -r file -s #FRAME_START# -e #FRAME_END# "
-          "-cam renderCam1 C:/opencue/scenes/test.ma")
+          "-cam renderCam1 P:/projects/opencue_test/scenes/test.ma")
     if submit:
         widget.submit()
     window.close()

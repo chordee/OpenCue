@@ -30,8 +30,8 @@ def main():
     ap.add_argument("--show", default="testing")
     ap.add_argument("--shot", default="testshot")
     ap.add_argument("--frames", default="1-3")
-    ap.add_argument("--usd", default="C:/opencue/render/twostage.usda")
-    ap.add_argument("--out", default="C:/opencue/render/twostage.$F4.exr")
+    ap.add_argument("--usd", default="P:/projects/opencue_test/render/twostage.usda")
+    ap.add_argument("--out", default="P:/projects/opencue_test/render/twostage.$F4.exr")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -45,7 +45,7 @@ def main():
     stage1 = Shell(
         "export_usd",
         command=["ocrun", "houdini", VERSION, "hython",
-                 "C:/opencue/scripts/stage1_export_usd.py"],
+                 "P:/projects/opencue_test/scripts/stage1_export_usd.py"],
         range="1-1",
         tags=[VERSION_TAG],
         env={

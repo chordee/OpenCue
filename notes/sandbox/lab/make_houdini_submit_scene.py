@@ -1,6 +1,6 @@
 """建立 27 篇用的 Houdini 測試場景。用法：ocrun houdini 22.0.429 hython make_houdini_submit_scene.py"""
 import hou
-OUT = "C:/opencue/render/hou/"
+OUT = "P:/projects/opencue_test/render/hou/"
 geo = hou.node("/obj").createNode("geo", "geo1")
 box = geo.createNode("box")
 
@@ -43,5 +43,5 @@ k.parm("picture").set(OUT + "karma.$F4.exr")
 k.parm("trange").set(1)
 k.parmTuple("f").deleteAllKeyframes(); k.parmTuple("f").set((1, 3, 1))
 k.setSelected(True, clear_all_selected=True)
-hou.hipFile.save("C:/opencue/scenes/hou_submit_test.hip")
+hou.hipFile.save("P:/projects/opencue_test/scenes/hou_submit_test.hip")
 print("saved", hou.hipFile.path())

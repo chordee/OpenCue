@@ -3,7 +3,7 @@
 以 hython 執行，每次算一個 frame。frame 編號來自 RQD 注入的環境變數
 CUE_IFRAME，所以不需要在 job 指令裡做字串代換。
 
-輸出目錄由 OPENCUE_RENDER_OUT 指定，預設 C:/opencue/render。
+輸出目錄由 OPENCUE_RENDER_OUT 指定，預設 P:/projects/opencue_test/render。
 正式環境應指向共享儲存的 UNC 路徑。
 
 算圖器由 OPENCUE_RENDERER 選擇：
@@ -28,7 +28,7 @@ def env_int(name, default):
 
 
 frame = env_int("CUE_IFRAME", 1)
-out_dir = os.environ.get("OPENCUE_RENDER_OUT", "C:/opencue/render").replace("\\", "/")
+out_dir = os.environ.get("OPENCUE_RENDER_OUT", "P:/projects/opencue_test/render").replace("\\", "/")
 res = (env_int("OPENCUE_RES_X", 320), env_int("OPENCUE_RES_Y", 240))
 
 print("=" * 60)

@@ -36,8 +36,8 @@ def main():
     ap.add_argument("--frames", default="1-4", help="frame range, e.g. 1-4")
     ap.add_argument("--version", default="22_0_429",
                     help="Houdini version tag suffix, e.g. 22_0_429")
-    ap.add_argument("--script", default="C:/opencue/scripts/houdini_render_frame.py")
-    ap.add_argument("--out", default="C:/opencue/render",
+    ap.add_argument("--script", default="P:/projects/opencue_test/scripts/houdini_render_frame.py")
+    ap.add_argument("--out", default="P:/projects/opencue_test/render",
                     help="算圖輸出目錄。正式環境應為共享儲存的 UNC 路徑")
     ap.add_argument("--renderer", default="karma", choices=["karma", "opengl"])
     ap.add_argument("--paused", action="store_true")

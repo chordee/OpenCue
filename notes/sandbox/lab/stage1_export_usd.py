@@ -19,7 +19,7 @@ def env_int(name, default):
         return default
 
 
-out_usd = os.environ.get("OPENCUE_USD_OUT", "C:/opencue/render/twostage.usda").replace("\\", "/")
+out_usd = os.environ.get("OPENCUE_USD_OUT", "P:/projects/opencue_test/render/twostage.usda").replace("\\", "/")
 f1 = env_int("OPENCUE_FRAME_START", 1)
 f2 = env_int("OPENCUE_FRAME_END", 3)
 

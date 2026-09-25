@@ -26,8 +26,8 @@ PRESETS = {
         "version": "22_0_429",
         "tag": "houdini_22_0_429",
         "command": ["ocrun", "houdini", "22.0.429", "hython",
-                    "C:/opencue/scripts/houdini_render_frame.py"],
-        "env": {"OPENCUE_RENDER_OUT": "C:/opencue/render",
+                    "P:/projects/opencue_test/scripts/houdini_render_frame.py"],
+        "env": {"OPENCUE_RENDER_OUT": "P:/projects/opencue_test/render",
                 "OPENCUE_RENDERER": "karma"},
     },
     "maya": {
@@ -35,16 +35,16 @@ PRESETS = {
         "tag": "maya_2027",
         "command": ["ocrun", "maya", "2027", "Render",
                     "-r", "sw", "-s", "#IFRAME#", "-e", "#IFRAME#",
-                    "-rd", "C:/opencue/render/maya",
-                    "C:/opencue/scenes/test.ma"],
+                    "-rd", "P:/projects/opencue_test/render/maya",
+                    "P:/projects/opencue_test/scenes/test.ma"],
         "env": {},
     },
     "nuke": {
         "version": "17_0v1",
         "tag": "nuke_17_0v1",
         "command": ["ocrun", "nuke", "17.0v1", "Nuke17.0", "-t",
-                    "C:/opencue/scripts/nuke_render_frame.py"],
-        "env": {"OPENCUE_RENDER_OUT": "C:/opencue/render/nuke"},
+                    "P:/projects/opencue_test/scripts/nuke_render_frame.py"],
+        "env": {"OPENCUE_RENDER_OUT": "P:/projects/opencue_test/render/nuke"},
     },
 }
 
