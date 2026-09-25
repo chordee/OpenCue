@@ -104,11 +104,14 @@ ocrun nuke 17.0v1 Nuke17.0 -F #FRAMESPEC# -x C:/opencue/scenes/nuke_submit_test.
 送出時是白天，本機被 CueNIMBY 依排程鎖定，frame 停在 WAITING（正確行為）。暫時解鎖後 5 格全部成功，
 第 1 格 40 秒（Nuke 冷啟動），其餘各 3 秒，`a`、`b` 兩組輸出齊全；算完後再鎖回去。
 
+接著在投遞視窗取消 `Comp.WriteB` 再送出：指令變成 `-X WriteA`，5 格全部成功，只輸出 `a.0001`～`0005`。
+修改 script 後未存檔就執行，會先詢問是否存檔。
+
 ---
 
 ## 四、尚未驗證
 
-- 選單項目（需要把工具目錄加進 `NUKE_PATH` 後重開 Nuke）、存檔詢問、在介面中只選部分 Write 節點
+- 選單項目（需要把工具目錄加進 `NUKE_PATH` 後重開 Nuke）
 - 停用的 Write 節點不列入（程式有處理，未實測）
 - 其他 Nuke 版本、Python 2.7 的舊版 Nuke
 - NukeX、Nuke Studio 的授權與執行檔名稱
