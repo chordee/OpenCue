@@ -97,6 +97,7 @@ ocrun houdini <版本> hython <版本目錄>/opencue_pdg_task.py <task 目錄> #
 | OpenCue 的自動重跑 | **關掉**（`maxretries=0`）。pyoutline 預設重跑 2 次，重跑會讓輸出檔被加兩次，失敗也要等重跑完才回報 |
 | callback server 的位址 | 綁定所有介面，對外公布本機的完整主機名稱；port 可以限定範圍（scheduler 的 Callback Port 參數） |
 | 查詢 frame | pycue 的 frame 搜尋預設只回傳 500 格，helper 依 job 的總格數指定上限 |
+| frame log 的連結（`getLogURI`） | 用 `urllib.parse.urlunparse` 組，與 Local scheduler 相同。frame log 在 UNC 路徑時，手組的 `file://host/...` 在 work item 視窗的 Output Log 顯示空白，`file:////host/...` 才顯示得出來 |
 
 ## 六、驗證結果
 
@@ -113,11 +114,11 @@ ocrun houdini <版本> hython <版本目錄>/opencue_pdg_task.py <task 目錄> #
 | **300 個 work item** | **一個 300 格的 job**，全部成功，820 秒。每格約 22 秒，大部分是 hython 的啟動時間 |
 | Houdini 21.0.729，從版本目錄 `2026.09.25.3` 以 package 載入 | 5 個全部成功，service 自動用 `houdini2107` |
 | **Houdini 介面**（使用者操作），21 與 22 各自依序 cook `work`、`collect` | 每個節點一個 job（20 格、5 格），全部成功；同一個工作階段中上游沒有重新 cook |
+| work item 視窗的 Output Log | 顯示該格 frame 的 RQD log（修正連結格式後） |
 
 新的 hython 工作階段 cook 下游時，上游會先重新 cook 一次（多一個 job）。在介面中同一個工作階段依序 cook 則不會。
 
 ### 尚未驗證
 
-- 從介面開啟 frame log（`getLogURI`）
 - 節點與工作站是不同機器時，callback server 的連線與防火牆
 - ROP Fetch、ROP Geometry 等實際的算圖節點
