@@ -58,6 +58,7 @@
 | [`30-Arnold授權與假成功.md`](30-Arnold授權與假成功.md) | 農場上的 Arnold 拿不到授權卻顯示成功：授權變數與 `ocrun` 的失敗偵測 |
 | [`31-Nuke內投遞.md`](31-Nuke內投遞.md) | 從 Nuke 投遞的兩段式工具：CueSubmit Nuke 類型的問題、chunk 與 frame spec 實測 |
 | [`32-節點tag長度上限.md`](32-節點tag長度上限.md) | 節點 tag 總長度超過 128 字元就註冊不上：工作室的 flyway migration |
+| [`33-照文件從頭重建.md`](33-照文件從頭重建.md) | 完全照 `notes/deploy/` 從空的 DB 重建一次：卡住的地方、驗證結果 |
 | [`lab/`](lab/) | 測試用的腳本（投遞、算圖、磁碟機測試）與本機 sandbox 的環境變數紀錄 |
 
 ## 閱讀建議（依工作角色導讀）
