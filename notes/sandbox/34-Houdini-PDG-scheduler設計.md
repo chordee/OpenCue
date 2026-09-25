@@ -1,6 +1,6 @@
 # 34 — Houdini PDG 的 OpenCue scheduler（設計）
 
-讓 TOP 網路的 work item 在 OpenCue 農場上執行。本篇是實作前的設計，尚未實測。2026-09-25。
+讓 TOP 網路的 work item 在 OpenCue 農場上執行。設計、實作與本機驗證。2026-09-25。
 
 ---
 
@@ -86,19 +86,37 @@ ocrun houdini <版本> hython <版本目錄>/opencue_pdg_task.py <task 目錄> #
 
 ---
 
-## 五、要實作時確認的事
+## 五、實作時確認的事
 
-- work item 指令裡的 `__PDG_*` token 由誰代換、代換成什麼（Tractor 自己寫了 `expandCommandTokens`）
-- 農場上的 hython 找得到 `pdgcmd` 等 PDG 腳本的方式（`PDG_SCRIPTDIR` 指向工作目錄底下的腳本）
-- `onSchedule` 回傳 `Succeeded` 之後，`workItemStartCook` 要在送出時呼叫，還是等 frame 開始跑
-- OpenCue 的 frame 被砍、被重跑（retry）時，PDG 端要怎麼對應
+| 問題 | 結果 |
+|---|---|
+| 自訂 scheduler 要不要做 HDA | 不用。`pdg/types/` 下的 Python 檔註冊後，TOP 網路自動出現 `pdg_opencuescheduler` 節點，並帶有 `pdg_workingdir`、RPC 等通用參數 |
+| `__PDG_HYTHON__` 等 token | ROP 類節點的指令是 `"__PDG_HYTHON__" "__PDG_SCRIPTDIR__/rop.py" json`：token 外面有引號，不能換成含空白的 `ocrun ...`。改為保留 `__PDG_HYTHON__`、`__PDG_PYTHON__`、`__PDG_HFS__`，由 `opencue_pdg_task.py` 查節點的 `dcc.toml` 換成實際路徑，並套用 `dcc.toml` 的 `[env]` |
+| PDG 的腳本（`pdgcmd.py` 等） | `onStartCook` 呼叫 `_copyJobSupportFiles()`，複製到工作目錄下的 `scripts/`，農場直接讀 |
+| 成功怎麼判定 | 以 frame 狀態為準：`SUCCEEDED` 回報成功，`DEAD`、`EATEN` 回報失敗（Local scheduler 也是看 exit code）。輸出檔與屬性由 work item 在結束前經 callback server 送回 |
+| OpenCue 的自動重跑 | **關掉**（`maxretries=0`）。pyoutline 預設重跑 2 次，重跑會讓輸出檔被加兩次，失敗也要等重跑完才回報 |
+| callback server 的位址 | 綁定所有介面，對外公布本機的完整主機名稱；port 可以限定範圍（scheduler 的 Callback Port 參數） |
+| 查詢 frame | pycue 的 frame 搜尋預設只回傳 500 格，helper 依 job 的總格數指定上限 |
 
-## 六、驗證計畫
+## 六、驗證結果
 
-測試圖：Generic Generator 產生 300 個 work item → Python Script（寫一個小檔案、睡幾秒）→ 下游節點。
+測試場景由 [`lab/make_pdg_test_scene.py`](lab/make_pdg_test_scene.py) 產生：Generic Generator → `work`（Python Script，外部程序，Hython）→ `collect`（Python Script，外部程序，PDG Python）。
+以 [`lab/cook_pdg_node.py`](lab/cook_pdg_node.py)、[`lab/cancel_pdg_cook.py`](lab/cancel_pdg_cook.py) 在 hython 中 cook。Houdini 22.0.429，本機單一節點（8 核）。
 
-1. cook 第一個節點：一個 300 格的 job，全部成功，PDG 顯示完成，輸出檔的屬性正確
-2. cook 下游節點：讀得到上游的結果
-3. 部分 work item 以 exit 1 失敗：PDG 顯示失敗，其他正常
-4. frame 在回報前被砍：`onTick` 偵測到並回報失敗
-5. cook 途中取消：OpenCue 上的 job 被砍掉
+| 情況 | 結果 |
+|---|---|
+| cook 第一個節點（5 個） | 一個 5 格的 job，全部成功；輸出檔路徑與屬性（`square`）回到 PDG |
+| cook 下游節點 | `collect` 讀到上游的屬性與輸出檔；`__PDG_PYTHON__` 換成節點的 `python313\python.exe` |
+| 部分 work item 失敗（exit 1） | 只有那兩個失敗，其他成功 |
+| frame 在回報前被砍 | 該 work item 判定失敗，不必等它原本的 90 秒 |
+| cook 途中取消 | PDG 顯示取消，OpenCue 的 job 被砍，節點上沒有殘留程序 |
+| **300 個 work item** | **一個 300 格的 job**，全部成功，820 秒。每格約 22 秒，大部分是 hython 的啟動時間 |
+| Houdini 21.0.729，從版本目錄 `2026.09.25.3` 以 package 載入 | 5 個全部成功，service 自動用 `houdini2107` |
+
+新的 hython 工作階段 cook 下游時，上游會先重新 cook 一次（多一個 job）。在介面中同一個工作階段依序 cook 則不會。
+
+### 尚未驗證
+
+- 在 Houdini 介面中操作（包括 `getLogURI` 開啟 frame log）
+- 節點與工作站是不同機器時，callback server 的連線與防火牆
+- ROP Fetch、ROP Geometry 等實際的算圖節點
