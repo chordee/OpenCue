@@ -71,6 +71,16 @@ def fill(widget, name):
     return widget.jobTreeWidget.currentLayerData
 
 
+def check_services(widget, good, builtin):
+    """Only a service with the version tag may pass validate()."""
+    for services, expected in ((builtin, False), ([], False), ([good], True)):
+        widget.servicesSelector.clearChecked()
+        widget.servicesSelector.setChecked(services)
+        widget.jobDataChanged()
+        check("validate with services {0}".format(services),
+              widget.validate(widget.getJobData()), expected)
+
+
 def check_maya(submit):
     print("--- Maya")
     args = opencue_maya_submit.parse_args([
@@ -83,6 +93,7 @@ def check_maya(submit):
     check("command", Submission.buildLayerCommand(layer),
           "ocrun maya 2027 Render -r file -s #FRAME_START# -e #FRAME_END# "
           "-cam renderCam1 P:/projects/opencue_test/scenes/test.ma")
+    check_services(widget, "maya2027", ["maya"])
     if submit:
         widget.submit()
     for action in widget.settingsWidget.cameraSelector.optionsMenu.actions():
@@ -114,6 +125,7 @@ def check_houdini(submit):
         check(path + " chunk", str(layer.chunk), expected_chunk)
         check(path + " command", Submission.buildLayerCommand(layer),
               "ocrun houdini 22.0.429 hython {0} {1} {2} #FRAMESPEC#".format(script, HIP, path))
+        check_services(widget, "houdini2204", ["houdini"])
         if submit:
             widget.submit()
     window.close()
@@ -127,6 +139,7 @@ def check_nuke(submit):
     check("range", layer.layerRange, "1-5")
     check("command, all writes", Submission.buildLayerCommand(layer),
           "ocrun nuke 17.0v1 Nuke17.0 -F #FRAMESPEC# -x " + NUKE_SCRIPT)
+    check_services(widget, "nuke17", ["nuke"])
     if submit:
         widget.submit()
     for action in widget.settingsWidget.writeSelector.optionsMenu.actions():

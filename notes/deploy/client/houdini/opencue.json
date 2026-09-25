@@ -1,5 +1,5 @@
 {
     "env": [
-        {"PYTHONPATH": {"value": "P:/pipeline/opencue/releases/2026.09.25/client/houdini", "method": "append"}}
+        {"PYTHONPATH": {"value": "P:/pipeline/opencue/releases/2026.09.25.2/client/houdini", "method": "append"}}
     ]
 }

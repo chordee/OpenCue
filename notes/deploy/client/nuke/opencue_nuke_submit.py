@@ -77,19 +77,49 @@ class NukeJobTypes(JobTypes.JobTypes):
 
 
 class NukeSubmitWidget(Submit.CueSubmitWidget):
-    """No Write node checked would drop -X and render all of them."""
+    """Refuses a job whose services do not pin this Nuke version, or with no
+    Write node checked (that would drop -X and render all of them)."""
+
+    def __init__(self, dccVersion, *args, **kwargs):
+        super(NukeSubmitWidget, self).__init__(*args, **kwargs)
+        self.dccVersion = dccVersion
 
     def validate(self, jobData):
+        for layer in jobData.get("layers") or []:
+            error = service_error(layer.services, self.dccVersion)
+            if error:
+                return self.errorInJobData("ERROR: Job not submitted!\n" + error)
         if not self.settingsWidget.getCommandData()["writes"]:
             return self.errorInJobData("ERROR: Job not submitted!\nPick at least one Write node.")
         return super(NukeSubmitWidget, self).validate(jobData)
 
 
+def version_tag(version):
+    return VERSION_TAG.format(version=version.replace(".", "_"))
+
+
 def find_service(version):
-    tag = VERSION_TAG.format(version=version.replace(".", "_"))
+    tag = version_tag(version)
     for service in opencue.api.getDefaultServices():
         if tag in service.tags():
             return service.name()
+    return None
+
+
+def service_error(services, version):
+    """Every service of the layer must carry the version tag.
+
+    Tags of several services are OR-ed, so one service without it (the
+    built-in "nuke" service is tagged general) lets the job run on any node.
+    """
+    tag = version_tag(version)
+    if not services:
+        return "Pick a service with the {0} tag.".format(tag)
+    tags = dict((s.name(), s.tags()) for s in opencue.api.getDefaultServices())
+    wrong = [name for name in services if tag not in tags.get(name, [])]
+    if wrong:
+        return ("Service {0} has no {1} tag, so the job could run on a node without "
+                "this version. Pick a service with that tag.".format(", ".join(wrong), tag))
     return None
 
 
@@ -102,6 +132,7 @@ def parse_args(argv):
 def build_window(info):
     window = QtWidgets.QMainWindow()
     widget = NukeSubmitWidget(
+        info["version"],
         settingsWidgetType=NukeJobTypes.SHELL,
         jobTypes=NukeJobTypes,
         info=info,
@@ -119,7 +150,7 @@ def build_window(info):
     window.setCentralWidget(widget)
     title = "Submit Nuke {0} to OpenCue".format(info["version"])
     if not service:
-        title += " - no service for this version, pick one"
+        title += " - no service has the {0} tag".format(version_tag(info["version"]))
     window.setWindowTitle(title)
     window.resize(650, 1000)
     return window, widget
