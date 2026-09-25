@@ -21,6 +21,7 @@ import re
 import subprocess
 import sys
 import time
+import urllib.parse
 
 import hou
 import pdg
@@ -156,7 +157,9 @@ class OpenCueScheduler(CallbackServerMixin, PyScheduler):
         path = self.logs.get(work_item.id)
         if not path:
             return ""
-        return "file:" + path if path.startswith("//") else "file:///" + path
+        # Built like the Local scheduler's: the log viewer needs file:////host/...
+        # for a UNC path, and shows nothing for file://host/...
+        return urllib.parse.urlunparse(("file", "", path, "", "", ""))
 
     # --- helpers ------------------------------------------------------------
 
