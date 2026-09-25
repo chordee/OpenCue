@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit review settings for this fork.
+# Reviews run on pull requests from studio/main to studio/release, the branch
+# production Portainer deploys from. See notes/deploy/04, section 0.
+language: zh-TW
+reviews:
+  path_filters:
+    # Test records and lab scripts; not deployed.
+    - "!notes/sandbox/**"
+  auto_review:
+    enabled: true
+    base_branches:
+      - "studio/release"
