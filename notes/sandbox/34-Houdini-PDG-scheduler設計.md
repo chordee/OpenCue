@@ -118,9 +118,26 @@ ocrun houdini <版本> hython <版本目錄>/opencue_pdg_task.py <task 目錄> #
 | 兩個節點的 work item 同時變成可執行（Merge 接兩條分支） | 修正前併成一個 job（layer 名稱、log 路徑都用第一個節點的）；修正後每個節點一個 job |
 | 在 OpenCue 端砍掉整個 job | 沒跑完的 frame 會停在 WAITING，helper 將已結束 job 中未完成的 frame 回報為 `KILLED`，cook 正常結束、work item 判定失敗 |
 
+### 實際的算圖節點
+
+場景由 [`lab/make_pdg_rop_scene.py`](lab/make_pdg_rop_scene.py) 以 `hou_submit_test.hip` 為基礎產生。Houdini 22.0.429。
+
+| 節點 | 設定 | 結果 |
+|---|---|---|
+| ROP Geometry TOP → `/obj/geo1/box1` | Frame Range 1-5 | 5 個 work item、一個 5 格的 job，輸出檔正確 |
+| ROP Fetch → `/obj/geo1/rop_out`（SOP 層的 ROP Geometry） | ROP Node Configuration | **一個** work item 在一格 frame 內算完 3 格，輸出 3 個檔 |
+| ROP Fetch → `/stage/karma_render/rop_usdrender`（Karma） | Frame Range 1-3 | 3 個 work item、一個 3 格的 job，3 張 EXR |
+
+使用上要注意的事（都是 PDG 本身的行為，與 scheduler 無關）：
+
+- ROP 類 TOP 的 **Evaluate Using 預設是 Single Frame**，只算一格。要分格送到農場，改成 Frame Range
+- **ROP Node Configuration 會把整段算成一個 work item**，只佔一格 frame，不會分散到多台機器
+- Karma（USD Render ROP）的 work item 回報的輸出是 `__render__.usd`，不是 EXR；下游要用圖檔時自己指定路徑
+- 工作目錄與 `$HIP` 不同時，PDG 會把 hip **複製一份到工作目錄**，frame 開啟的是這份複本，也就是 cook 當下的內容。
+  與投遞工具「直接讀原本的場景檔」不同
+
 新的 hython 工作階段 cook 下游時，上游會先重新 cook 一次（多一個 job）。在介面中同一個工作階段依序 cook 則不會。
 
 ### 尚未驗證
 
 - 節點與工作站是不同機器時，callback server 的連線與防火牆
-- ROP Fetch、ROP Geometry 等實際的算圖節點
