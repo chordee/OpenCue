@@ -10,6 +10,7 @@
 '
 ' Dedicated render nodes: use a Windows service instead of this file.
 '
-' Running this file by hand was tested; starting it at logon was not.
+' Tested by hand and from the user's Startup folder at logon. A logon-triggered
+' scheduled task deployed by GPO was not tested.
 
 CreateObject("Wscript.Shell").Run "C:\opencue\rqd-start.bat", 0, False
