@@ -155,6 +155,9 @@ class OcrunTest(unittest.TestCase):
         os.environ["OCRUN_REZ"] = "houdini-22.0.429"
         os.environ["PATH"] = self.tmp
         self.assertEqual(ocrun.main(["houdini", "22.0.429", "hython"]), 127)
+        with open(os.environ["OPENCUE_DCC_CONFIG"], "a") as f:
+            f.write("[rez]\nrez_env = '%s'\n" % os.path.join(self.tmp, "missing-rez-env"))
+        self.assertEqual(ocrun.main(["houdini", "22.0.429", "hython"]), 127)
 
     def test_console_script(self):
         # Runs the same way through the installed entry point, when present.

@@ -86,7 +86,7 @@ def main(argv=None):
     if request:
         command = rez_command(config, request, program, args)
         if not command:
-            print("[ocrun] OCRUN_REZ is set but rez-env was not found: set [rez] rez_env in %s"
+            print("[ocrun] OCRUN_REZ is set but rez-env was not found: check [rez] rez_env in %s"
                   % path, file=sys.stderr)
             return 127
     else:
@@ -116,7 +116,10 @@ def rez_command(config, request, program, args):
     (epoch seconds) so every frame resolves the same versions.
     """
     rez_env = config.get("rez", {}).get("rez_env")
-    if not rez_env:
+    if rez_env:
+        if not (os.path.isfile(rez_env) and os.access(rez_env, os.X_OK)):
+            return None
+    else:
         for folder in os.environ.get("PATH", "").split(os.pathsep):
             rez_env = find_program(folder, "rez-env") if folder else None
             if rez_env:
