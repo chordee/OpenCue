@@ -54,9 +54,6 @@ def build_env(config, product):
     if tmp:
         env.setdefault("TEMP", tmp)
     env.update(PRODUCT_ENV.get(product, {}))
-    # Every frame is farm work, also on a workstation borrowed at night: the
-    # studio's Rez packages then use the farm preference directories.
-    env["STUDIO_FARM_NODE"] = "1"
     # dcc.toml only fills in defaults: a variable the job sets wins. Windows
     # names are case-insensitive, so compare them that way there.
     fold = str.upper if os.name == "nt" else str

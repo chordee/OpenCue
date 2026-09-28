@@ -24,10 +24,15 @@
 # foundry_LICENSE = '4101@license-server.studio.local'
 # solidangle_LICENSE = '5053@license-server.studio.local'
 # Rez: its Machine-level settings do not reach frames either (only for jobs
-# that set OCRUN_REZ). Same values as the machine's own.
+# that set OCRUN_REZ). Same values as the machine's own; the names below are
+# examples, use the studio's.
 # REZ_CONFIG_FILE = '\\nas\share\rez-system\config\rezconfig.py'
 # STUDIO_REZ_ROOT = '//nas/share/rez-system'
 # REZ_DISABLE_HOME_CONFIG = '1'
+# A variable the studio's packages read to tell a frame from an interactive
+# session, for example to use farm preference directories. Every frame gets
+# it, also on a workstation borrowed for the night. The name is the studio's.
+# STUDIO_FARM_NODE = '1'
 
 # Where rez-env is, for jobs that set OCRUN_REZ. Without this, ocrun looks for
 # rez-env on PATH, which rqd-start.bat keeps to Windows and the OpenCue venv.

@@ -45,13 +45,11 @@ class OcrunTest(unittest.TestCase):
 
     def test_environment(self):
         rc, env = self.run_py("{k: os.environ.get(k) for k in "
-                              "['MAYA_DISABLE_CER', 'STUDIO_LICENSE', 'TEMP', "
-                              "'STUDIO_FARM_NODE']}")
+                              "['MAYA_DISABLE_CER', 'STUDIO_LICENSE', 'TEMP']}")
         self.assertEqual(rc, 0)
         self.assertEqual(eval(env), {"MAYA_DISABLE_CER": "1",
                                      "STUDIO_LICENSE": "5053@lic",
-                                     "TEMP": self.tmp,
-                                     "STUDIO_FARM_NODE": "1"})
+                                     "TEMP": self.tmp})
 
     def test_job_environment_wins_over_config(self):
         os.environ["STUDIO_LICENSE"] = "job@lic"
@@ -111,12 +109,12 @@ class OcrunTest(unittest.TestCase):
         self.assertEqual(ocrun.main(["maya", "2027", "no_such_program"]), 127)
 
     def fake_rez_env(self):
-        """A rez-env that records its arguments and STUDIO_FARM_NODE."""
+        """A rez-env that records its arguments and STUDIO_LICENSE."""
         record = os.path.join(self.tmp, "rez.json")
         script = os.path.join(self.tmp, "fake_rez.py")
         with open(script, "w") as f:
             f.write("import json, os, sys\n"
-                    "json.dump([sys.argv[1:], os.environ.get('STUDIO_FARM_NODE')], "
+                    "json.dump([sys.argv[1:], os.environ.get('STUDIO_LICENSE')], "
                     "open(%r, 'w'))\n" % record)
         if os.name == "nt":
             rez_env = os.path.join(self.tmp, "rez-env.bat")
@@ -139,10 +137,11 @@ class OcrunTest(unittest.TestCase):
         rc = ocrun.main(["houdini", "22.0.429", "hython", "-c", "x"])
         self.assertEqual(rc, 0)
         with open(record) as f:
-            args, farm_node = json.load(f)
+            args, license = json.load(f)
         self.assertEqual(args, ["houdini-22.0.429", "studio_ocio", "--time", "1727500000",
                                 "--no-local", "--", "hython", "-c", "x"])
-        self.assertEqual(farm_node, "1")
+        # dcc.toml [env] still reaches the program through rez-env.
+        self.assertEqual(license, "5053@lic")
 
     def test_rez_env_from_path(self):
         rez_env, record = self.fake_rez_env()
