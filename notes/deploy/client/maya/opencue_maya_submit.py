@@ -10,6 +10,7 @@
 # Chinese documentation: notes/deploy/03.
 
 import argparse
+import re
 import sys
 
 from qtpy import QtWidgets
@@ -17,12 +18,62 @@ from qtpy import QtWidgets
 import opencue
 from cuesubmit import Constants
 from cuesubmit import JobTypes
+from cuesubmit import Submission
+from cuesubmit.ui import Command
 from cuesubmit.ui import SettingsWidgets
 from cuesubmit.ui import Style
 from cuesubmit.ui import Submit
 
 RENDER_CMD = "ocrun maya {version} Render"
 VERSION_TAG = "maya_{version}"
+
+# Environment box: one KEY=VALUE per line; blank lines and # lines are skipped.
+ENV_LINE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
+
+
+def parse_env(text):
+    """(variables, lines that are not KEY=VALUE) from the Environment box."""
+    env, bad = {}, []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = ENV_LINE.match(line)
+        if match:
+            env[match.group(1)] = match.group(2)
+        else:
+            bad.append(line)
+    return env, bad
+
+
+def env_error(command_data):
+    bad = parse_env(command_data.get("env", ""))[1]
+    if bad:
+        return "Environment lines must be KEY=VALUE:\n" + "\n".join(bad)
+    return None
+
+
+def add_env_box(settings):
+    """The Environment box; its text goes into getCommandData() as "env"."""
+    box = Command.CueCommandTextBox()
+    box.label.setText("Environment (KEY=VALUE per line):")
+    box.commandBox.textChanged.connect(lambda: settings.dataChanged.emit(None))
+    settings.groupLayout.addWidget(box)
+    return box.commandBox
+
+
+def _build_layer_with_env(layerData, command, lastLayer=None):
+    """Upstream buildLayer leaves the layer's environment out; add it."""
+    layer = _build_layer(layerData, command, lastLayer)
+    for key, value in parse_env(layerData.cmd.get("env", ""))[0].items():
+        layer.set_env(key, value)
+    return layer
+
+
+_build_layer = Submission.buildLayer
+if not getattr(_build_layer, "adds_env", False):
+    _build_layer_with_env.adds_env = True
+    Submission.buildLayer = _build_layer_with_env
 
 
 class MayaSettings(SettingsWidgets.InMayaSettings):
@@ -38,11 +89,17 @@ class MayaSettings(SettingsWidgets.InMayaSettings):
         self.cameraSelector.multiselect = False
         # Upstream only watches the file field, so a camera change never reached the layer.
         self.cameraSelector.optionsMenu.triggered.connect(lambda: self.dataChanged.emit(None))
+        self.envInput = add_env_box(self)
 
     def getCommandData(self):
         checked = self.cameraSelector.getChecked()
         return {"mayaFile": self.mayaFileInput.text(),
-                "camera": checked[0] if checked else ""}
+                "camera": checked[0] if checked else "",
+                "env": self.envInput.toPlainText()}
+
+    def setCommandData(self, commandData):
+        super(MayaSettings, self).setCommandData(commandData)
+        self.envInput.setPlainText(commandData.get("env", ""))
 
 
 class MayaJobTypes(JobTypes.JobTypes):
@@ -88,7 +145,8 @@ class MayaSubmitWidget(Submit.CueSubmitWidget):
 
     def validate(self, jobData):
         for layer in jobData.get("layers") or []:
-            error = service_error(layer.services, self.dccVersion)
+            error = (service_error(layer.services, self.dccVersion)
+                     or env_error(layer.cmd))
             if error:
                 return self.errorInJobData("ERROR: Job not submitted!\n" + error)
         return super(MayaSubmitWidget, self).validate(jobData)

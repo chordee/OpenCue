@@ -17,12 +17,15 @@
 import argparse
 import json
 import os
+import re
 import sys
 
 from qtpy import QtWidgets
 
 import opencue
 from cuesubmit import JobTypes
+from cuesubmit import Submission
+from cuesubmit.ui import Command
 from cuesubmit.ui import SettingsWidgets
 from cuesubmit.ui import Style
 from cuesubmit.ui import Submit
@@ -30,6 +33,54 @@ from cuesubmit.ui import Widgets
 
 RENDER_CMD = "ocrun nuke {version} {program} -F #FRAMESPEC#{writes} -x {script}"
 VERSION_TAG = "nuke_{version}"
+
+# Environment box: one KEY=VALUE per line; blank lines and # lines are skipped.
+ENV_LINE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
+
+
+def parse_env(text):
+    """(variables, lines that are not KEY=VALUE) from the Environment box."""
+    env, bad = {}, []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = ENV_LINE.match(line)
+        if match:
+            env[match.group(1)] = match.group(2)
+        else:
+            bad.append(line)
+    return env, bad
+
+
+def env_error(command_data):
+    bad = parse_env(command_data.get("env", ""))[1]
+    if bad:
+        return "Environment lines must be KEY=VALUE:\n" + "\n".join(bad)
+    return None
+
+
+def add_env_box(settings):
+    """The Environment box; its text goes into getCommandData() as "env"."""
+    box = Command.CueCommandTextBox()
+    box.label.setText("Environment (KEY=VALUE per line):")
+    box.commandBox.textChanged.connect(lambda: settings.dataChanged.emit(None))
+    settings.groupLayout.addWidget(box)
+    return box.commandBox
+
+
+def _build_layer_with_env(layerData, command, lastLayer=None):
+    """Upstream buildLayer leaves the layer's environment out; add it."""
+    layer = _build_layer(layerData, command, lastLayer)
+    for key, value in parse_env(layerData.cmd.get("env", ""))[0].items():
+        layer.set_env(key, value)
+    return layer
+
+
+_build_layer = Submission.buildLayer
+if not getattr(_build_layer, "adds_env", False):
+    _build_layer_with_env.adds_env = True
+    Submission.buildLayer = _build_layer_with_env
 
 
 def program_name(version):
@@ -52,6 +103,7 @@ class NukeSettings(SettingsWidgets.BaseSettingsWidget):
         self.writeSelector.setChecked(self.writes)
         self.groupLayout.addWidget(self.scriptInput)
         self.groupLayout.addWidget(self.writeSelector)
+        self.envInput = add_env_box(self)
         self.scriptInput.textChanged.connect(lambda: self.dataChanged.emit(None))
         self.writeSelector.optionsMenu.triggered.connect(lambda: self.dataChanged.emit(None))
 
@@ -64,11 +116,12 @@ class NukeSettings(SettingsWidgets.BaseSettingsWidget):
                                     program=program_name(self.version),
                                     writes=writes, script=self.scriptInput.text())
         return {"commandTextBox": command, "script": self.scriptInput.text(),
-                "writes": checked}
+                "writes": checked, "env": self.envInput.toPlainText()}
 
     def setCommandData(self, commandData):
         self.scriptInput.setText(commandData.get("script", self.scriptInput.text()))
         self.writeSelector.setChecked(commandData.get("writes", self.writes))
+        self.envInput.setPlainText(commandData.get("env", ""))
 
 
 class NukeJobTypes(JobTypes.JobTypes):
@@ -86,7 +139,8 @@ class NukeSubmitWidget(Submit.CueSubmitWidget):
 
     def validate(self, jobData):
         for layer in jobData.get("layers") or []:
-            error = service_error(layer.services, self.dccVersion)
+            error = (service_error(layer.services, self.dccVersion)
+                     or env_error(layer.cmd))
             if error:
                 return self.errorInJobData("ERROR: Job not submitted!\n" + error)
         if not self.settingsWidget.getCommandData()["writes"]:

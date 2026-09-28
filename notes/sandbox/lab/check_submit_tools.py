@@ -81,6 +81,21 @@ def check_services(widget, good, builtin):
               widget.validate(widget.getJobData()), expected)
 
 
+def check_env(widget, label):
+    """The Environment box reaches the layer; a line that is not KEY=VALUE is refused."""
+    box = widget.settingsWidget.envInput
+    box.setPlainText("STUDIO_SHOW=projA\n# comment\n\nOCIO=P:/ocio/config one.ocio")
+    layer = fill(widget, "check_env_" + label)
+    built = Submission.buildLayer(layer, Submission.buildLayerCommand(layer))
+    check(label + " env on the layer", built.get_envs(),
+          {"STUDIO_SHOW": "projA", "OCIO": "P:/ocio/config one.ocio"})
+    box.setPlainText("not a variable")
+    widget.jobDataChanged()
+    check(label + " bad env line is rejected", widget.validate(widget.getJobData()), False)
+    box.setPlainText("")
+    widget.jobDataChanged()
+
+
 def check_maya(submit):
     print("--- Maya")
     args = opencue_maya_submit.parse_args([
@@ -94,6 +109,7 @@ def check_maya(submit):
           "ocrun maya 2027 Render -r file -s #FRAME_START# -e #FRAME_END# "
           "-cam renderCam1 P:/projects/opencue_test/scenes/test.ma")
     check_services(widget, "maya2027", ["maya"])
+    check_env(widget, "maya")
     if submit:
         widget.submit()
     for action in widget.settingsWidget.cameraSelector.optionsMenu.actions():
@@ -126,6 +142,7 @@ def check_houdini(submit):
         check(path + " command", Submission.buildLayerCommand(layer),
               "ocrun houdini 22.0.429 hython {0} {1} {2} #FRAMESPEC#".format(script, HIP, path))
         check_services(widget, "houdini2204", ["houdini"])
+        check_env(widget, "houdini " + path.rsplit("/", 1)[-1])
         if submit:
             widget.submit()
     window.close()
@@ -140,6 +157,7 @@ def check_nuke(submit):
     check("command, all writes", Submission.buildLayerCommand(layer),
           "ocrun nuke 17.0v1 Nuke17.0 -F #FRAMESPEC# -x " + NUKE_SCRIPT)
     check_services(widget, "nuke17", ["nuke"])
+    check_env(widget, "nuke")
     if submit:
         widget.submit()
     for action in widget.settingsWidget.writeSelector.optionsMenu.actions():
