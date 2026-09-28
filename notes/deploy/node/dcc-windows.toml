@@ -23,6 +23,16 @@
 # ADSKFLEX_LICENSE_FILE = '@license-server.studio.local'
 # foundry_LICENSE = '4101@license-server.studio.local'
 # solidangle_LICENSE = '5053@license-server.studio.local'
+# Rez: its Machine-level settings do not reach frames either (only for jobs
+# that set OCRUN_REZ). Same values as the machine's own.
+# REZ_CONFIG_FILE = '\\nas\share\rez-system\config\rezconfig.py'
+# STUDIO_REZ_ROOT = '//nas/share/rez-system'
+# REZ_DISABLE_HOME_CONFIG = '1'
+
+# Where rez-env is, for jobs that set OCRUN_REZ. Without this, ocrun looks for
+# rez-env on PATH, which rqd-start.bat keeps to Windows and the OpenCue venv.
+# [rez]
+# rez_env = 'C:\rez-client\venv\Scripts\rez\rez-env.exe'
 
 # version = directory that holds the program
 # EDIT: install locations on THIS machine.

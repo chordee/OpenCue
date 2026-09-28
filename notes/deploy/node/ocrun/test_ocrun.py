@@ -1,5 +1,6 @@
 """python -m unittest test_ocrun   (run inside this directory)"""
 import io
+import json
 import os
 import subprocess
 import sys
@@ -44,11 +45,13 @@ class OcrunTest(unittest.TestCase):
 
     def test_environment(self):
         rc, env = self.run_py("{k: os.environ.get(k) for k in "
-                              "['MAYA_DISABLE_CER', 'STUDIO_LICENSE', 'TEMP']}")
+                              "['MAYA_DISABLE_CER', 'STUDIO_LICENSE', 'TEMP', "
+                              "'STUDIO_FARM_NODE']}")
         self.assertEqual(rc, 0)
         self.assertEqual(eval(env), {"MAYA_DISABLE_CER": "1",
                                      "STUDIO_LICENSE": "5053@lic",
-                                     "TEMP": self.tmp})
+                                     "TEMP": self.tmp,
+                                     "STUDIO_FARM_NODE": "1"})
 
     def test_job_environment_wins_over_config(self):
         os.environ["STUDIO_LICENSE"] = "job@lic"
@@ -106,6 +109,53 @@ class OcrunTest(unittest.TestCase):
         self.assertEqual(ocrun.main(["maya", "2027", os.path.join("..", os.path.basename(BINDIR),
                                                                   PROGRAM)]), 127)
         self.assertEqual(ocrun.main(["maya", "2027", "no_such_program"]), 127)
+
+    def fake_rez_env(self):
+        """A rez-env that records its arguments and STUDIO_FARM_NODE."""
+        record = os.path.join(self.tmp, "rez.json")
+        script = os.path.join(self.tmp, "fake_rez.py")
+        with open(script, "w") as f:
+            f.write("import json, os, sys\n"
+                    "json.dump([sys.argv[1:], os.environ.get('STUDIO_FARM_NODE')], "
+                    "open(%r, 'w'))\n" % record)
+        if os.name == "nt":
+            rez_env = os.path.join(self.tmp, "rez-env.bat")
+            with open(rez_env, "w") as f:
+                f.write('@"%s" "%s" %%*\n' % (sys.executable, script))
+        else:
+            rez_env = os.path.join(self.tmp, "rez-env")
+            with open(rez_env, "w") as f:
+                f.write('#!/bin/sh\nexec "%s" "%s" "$@"\n' % (sys.executable, script))
+            os.chmod(rez_env, 0o755)
+        return rez_env, record
+
+    def test_rez_wraps_the_program(self):
+        rez_env, record = self.fake_rez_env()
+        with open(os.environ["OPENCUE_DCC_CONFIG"], "a") as f:
+            f.write("[rez]\nrez_env = '%s'\n" % rez_env)
+        os.environ["OCRUN_REZ"] = "houdini-22.0.429 studio_ocio"
+        os.environ["OCRUN_REZ_TIME"] = "1727500000"
+        # houdini is not in dcc.toml: with Rez, the packages find the DCC.
+        rc = ocrun.main(["houdini", "22.0.429", "hython", "-c", "x"])
+        self.assertEqual(rc, 0)
+        with open(record) as f:
+            args, farm_node = json.load(f)
+        self.assertEqual(args, ["houdini-22.0.429", "studio_ocio", "--time", "1727500000",
+                                "--no-local", "--", "hython", "-c", "x"])
+        self.assertEqual(farm_node, "1")
+
+    def test_rez_env_from_path(self):
+        rez_env, record = self.fake_rez_env()
+        os.environ["OCRUN_REZ"] = "nuke-17.0v1"
+        os.environ["PATH"] = self.tmp + os.pathsep + os.environ.get("PATH", "")
+        self.assertEqual(ocrun.main(["nuke", "17.0v1", "Nuke17.0", "-t"]), 0)
+        with open(record) as f:
+            self.assertEqual(json.load(f)[0], ["nuke-17.0v1", "--no-local", "--", "Nuke17.0", "-t"])
+
+    def test_rez_env_not_found(self):
+        os.environ["OCRUN_REZ"] = "houdini-22.0.429"
+        os.environ["PATH"] = self.tmp
+        self.assertEqual(ocrun.main(["houdini", "22.0.429", "hython"]), 127)
 
     def test_console_script(self):
         # Runs the same way through the installed entry point, when present.

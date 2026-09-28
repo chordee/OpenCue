@@ -10,6 +10,9 @@ Where each version is installed differs from machine to machine, so it is
 looked up in a per-machine config file (dcc.toml). Job commands therefore stay
 the same on every node, whatever the OS.
 
+A job that sets OCRUN_REZ (a Rez package request) runs the program through
+rez-env instead, and the Rez packages decide where the DCC is.
+
 ASCII ONLY.
 """
 import os
@@ -51,6 +54,9 @@ def build_env(config, product):
     if tmp:
         env.setdefault("TEMP", tmp)
     env.update(PRODUCT_ENV.get(product, {}))
+    # Every frame is farm work, also on a workstation borrowed at night: the
+    # studio's Rez packages then use the farm preference directories.
+    env["STUDIO_FARM_NODE"] = "1"
     # dcc.toml only fills in defaults: a variable the job sets wins. Windows
     # names are case-insensitive, so compare them that way there.
     fold = str.upper if os.name == "nt" else str
@@ -73,27 +79,58 @@ def main(argv=None):
         print("usage: ocrun <product> <version> <program> [args...]")
         print("configured in %s:" % path)
         for product, versions in config.items():
-            if product != "env":
+            if product not in ("env", "rez"):
                 for version, bindir in versions.items():
                     print("  %s %s  %s" % (product, version, bindir))
         return 2
 
     product, version, program, args = argv[0], argv[1], argv[2], argv[3:]
-    bindir = config.get(product, {}).get(version)
-    if not bindir:
-        print("[ocrun] %s %s is not configured in %s" % (product, version, path),
-              file=sys.stderr)
-        return 127
-    exe = find_program(bindir, program)
-    if not exe:
-        print("[ocrun] %s not found in %s" % (program, bindir), file=sys.stderr)
-        return 127
+    request = os.environ.get("OCRUN_REZ", "").split()
+    if request:
+        command = rez_command(config, request, program, args)
+        if not command:
+            print("[ocrun] OCRUN_REZ is set but rez-env was not found: set [rez] rez_env in %s"
+                  % path, file=sys.stderr)
+            return 127
+    else:
+        bindir = config.get(product, {}).get(version)
+        if not bindir:
+            print("[ocrun] %s %s is not configured in %s" % (product, version, path),
+                  file=sys.stderr)
+            return 127
+        exe = find_program(bindir, program)
+        if not exe:
+            print("[ocrun] %s not found in %s" % (program, bindir), file=sys.stderr)
+            return 127
+        command = [exe] + args
 
-    print("[ocrun] %s %s: %s %s" % (product, version, exe, " ".join(args)), flush=True)
+    print("[ocrun] %s %s: %s" % (product, version, " ".join(command)), flush=True)
+    env = build_env(config, product)
     patterns = PRODUCT_FAIL_PATTERNS.get(product)
     if not patterns:
-        return subprocess.call([exe] + args, env=build_env(config, product))
-    return run_checked(exe, args, build_env(config, product), patterns)
+        return subprocess.call(command, env=env)
+    return run_checked(command, env, patterns)
+
+
+def rez_command(config, request, program, args):
+    """Run the program in a Rez environment, which also puts it on PATH.
+
+    OCRUN_REZ holds the package request, OCRUN_REZ_TIME the submit time
+    (epoch seconds) so every frame resolves the same versions.
+    """
+    rez_env = config.get("rez", {}).get("rez_env")
+    if not rez_env:
+        for folder in os.environ.get("PATH", "").split(os.pathsep):
+            rez_env = find_program(folder, "rez-env") if folder else None
+            if rez_env:
+                break
+    if not rez_env:
+        return None
+    command = [rez_env] + request
+    if os.environ.get("OCRUN_REZ_TIME"):
+        command += ["--time", os.environ["OCRUN_REZ_TIME"]]
+    # --no-local: a render never picks up a developer's local packages.
+    return command + ["--no-local", "--", program] + args
 
 
 def find_program(bindir, program):
@@ -108,10 +145,10 @@ def find_program(bindir, program):
     return None
 
 
-def run_checked(exe, args, env, patterns):
+def run_checked(command, env, patterns):
     """Run the program, pass its output through, and fail on a known error line."""
     matched = None
-    proc = subprocess.Popen([exe] + args, env=env,
+    proc = subprocess.Popen(command, env=env,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out = sys.stdout.buffer
     for line in proc.stdout:
