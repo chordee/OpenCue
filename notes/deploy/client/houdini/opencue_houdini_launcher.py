@@ -95,11 +95,47 @@ def _is_simulation(node):
     return False
 
 
+def _husk(node):
+    """husk arguments for a USD render node, or None for other nodes.
+
+    The exported USD holds the render settings, products and camera; only what
+    the node sets outside the stage has to be passed to husk.
+    """
+    kind = node.type().name()
+    if kind == "karma":
+        # The stage records the engine, but husk still defaults to Karma CPU.
+        xpu = node.parm("engine").evalAsString() == "xpu"
+        return {"args": ["--renderer", "BRAY_HdKarmaXPU" if xpu else "BRAY_HdKarma"]}
+    if kind not in ("usdrender", "usdrender_rop"):
+        return None
+    if node.parm("outputimage").evalAsString():
+        return {"error": "Output Picture is overridden on {0}; husk renders the image "
+                         "paths of the render settings. Set the path there instead."
+                         .format(node.path())}
+    args = []
+    for parm, flag in (("renderer", "--renderer"), ("rendersettings", "--settings"),
+                       ("override_camera", "--camera")):
+        value = node.parm(parm).evalAsString()
+        if value and value != "default_delegate":
+            args += [flag, value]
+    return {"args": args}
+
+
 def _nodes():
     nodes = [n for n in hou.node("/").allSubChildren(recurse_in_locked_nodes=False)
              if _is_render_node(n)]
-    return [{"path": n.path(), "type": n.type().name(),
-             "range": _frame_range(n), "simulation": _is_simulation(n)} for n in nodes]
+    hip_dir, hip_file = os.path.split(hou.hipFile.path())
+    info = []
+    for n in nodes:
+        item = {"path": n.path(), "type": n.type().name(),
+                "range": _frame_range(n), "simulation": _is_simulation(n)}
+        husk = _husk(n)
+        if husk:
+            husk["usd"] = "{0}/usd/{1}.{2}.usd".format(
+                hip_dir, os.path.splitext(hip_file)[0], n.name())
+            item["husk"] = husk
+        info.append(item)
+    return info
 
 
 def _selected(nodes):

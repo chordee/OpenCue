@@ -7,10 +7,14 @@
 #     render command  ocrun houdini <version> hython opencue_houdini_render.py
 #                     <hip> <node> #FRAMESPEC#
 #     service         the one whose tags hold houdini_<version>
+# A USD render node (Karma LOP, USD Render ROP) can render with husk instead:
+# the layer becomes two, "<layer>_usd" saving the stage to one USD file in a
+# single task, and "<layer>" running husk on it per frame once it is done.
 #
 # Chinese documentation: notes/deploy/03.
 
 import argparse
+import copy
 import json
 import os
 import re
@@ -32,6 +36,10 @@ from cuesubmit.ui import Widgets
 RENDER_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              "opencue_houdini_render.py").replace("\\", "/")
 RENDER_CMD = "ocrun houdini {version} hython {script} {hip} {node} #FRAMESPEC#"
+EXPORT_CMD = ("ocrun houdini {version} hython {script} --export-usd {usd} {hip} {node} "
+              "#FRAMESPEC#")
+HUSK_CMD = ("ocrun houdini {version} husk --make-output-path --frame #IFRAME# "
+            "--frame-count 1 {args}{usd}")
 VERSION_TAG = "houdini_{version}"
 
 # Environment box: one KEY=VALUE per line; blank lines and # lines are skipped.
@@ -100,29 +108,59 @@ class HoudiniSettings(SettingsWidgets.BaseSettingsWidget):
             "Whole range as one task (simulation)",
             tooltip="Cook every frame in order in a single task. "
                     "Required for simulations; leave off to render frames in parallel.")
+        self.useHusk = Widgets.CueLabelToggle(
+            "Render with husk (export USD first)",
+            tooltip="USD render nodes only. One task saves the stage to the USD file, "
+                    "then husk renders it one frame per task, without loading the hip file.")
+        self.usdInput = Widgets.CueLabelLineEdit("USD File:")
         self.groupLayout.addWidget(self.hipInput)
         self.groupLayout.addWidget(self.nodeSelector)
         self.groupLayout.addWidget(self.wholeRange)
+        self.groupLayout.addWidget(self.useHusk)
+        self.groupLayout.addWidget(self.usdInput)
         self.envInput = add_env_box(self)
         self.hipInput.textChanged.connect(lambda: self.dataChanged.emit(None))
         self.nodeSelector.optionsMenu.triggered.connect(lambda: self.dataChanged.emit(None))
         self.wholeRange.valueChanged.connect(lambda: self.dataChanged.emit(None))
+        self.useHusk.valueChanged.connect(lambda: self.dataChanged.emit(None))
+        self.usdInput.textChanged.connect(lambda: self.dataChanged.emit(None))
 
     def node(self):
         return self.nodeSelector.getChecked()[0]
 
+    def husk(self):
+        """The node's husk info when the layer renders with husk, else None."""
+        husk = self.nodes[self.node()].get("husk")
+        return husk if husk and self.useHusk.getter() else None
+
     def getCommandData(self):
-        command = RENDER_CMD.format(version=self.version, script=RENDER_SCRIPT,
-                                    hip=self.hipInput.text(), node=self.node())
-        return {"commandTextBox": command, "hip": self.hipInput.text(),
-                "node": self.node(), "wholeRange": bool(self.wholeRange.getter()),
+        data = {"hip": self.hipInput.text(), "node": self.node(),
+                "wholeRange": bool(self.wholeRange.getter()),
+                "husk": bool(self.husk()), "usd": self.usdInput.text(),
                 "env": self.envInput.toPlainText()}
+        husk = self.husk()
+        if husk:
+            data["commandTextBox"] = HUSK_CMD.format(
+                version=self.version, usd=self.usdInput.text(),
+                args="".join(a + " " for a in husk.get("args", [])))
+            data["exportCommand"] = EXPORT_CMD.format(
+                version=self.version, script=RENDER_SCRIPT, usd=self.usdInput.text(),
+                hip=self.hipInput.text(), node=self.node())
+            data["huskError"] = husk.get("error")
+        else:
+            data["commandTextBox"] = RENDER_CMD.format(
+                version=self.version, script=RENDER_SCRIPT,
+                hip=self.hipInput.text(), node=self.node())
+        return data
 
     def setCommandData(self, commandData):
         self.hipInput.setText(commandData.get("hip", self.hipInput.text()))
         if commandData.get("node"):
             self.nodeSelector.setChecked([commandData["node"]])
         self.wholeRange.setter(int(commandData.get("wholeRange", False)))
+        self.useHusk.setter(int(commandData.get("husk", False)))
+        if commandData.get("usd"):
+            self.usdInput.setText(commandData["usd"])
         self.envInput.setPlainText(commandData.get("env", ""))
 
 
@@ -160,6 +198,38 @@ def service_error(services, version):
     return None
 
 
+def split_husk_layers(layers):
+    """Each husk layer becomes "<name>_usd" (export, one task) and "<name>" (husk)."""
+    result = []
+    for layer in layers:
+        if not layer.cmd.get("husk"):
+            result.append(layer)
+            continue
+        export = copy.copy(layer)
+        export.name = layer.name + "_usd"
+        export.cmd = dict(layer.cmd, commandTextBox=layer.cmd["exportCommand"], husk=False)
+        try:
+            export.chunk = str(FrameSet(layer.layerRange).size())
+        except Exception:  # pylint: disable=broad-except
+            pass  # CueSubmit's own validation reports the frame range
+        render = copy.copy(layer)
+        render.dependType = "Layer"
+        result += [export, render]
+    return result
+
+
+def husk_error(layer):
+    if not layer.cmd.get("husk"):
+        return None
+    if layer.cmd.get("huskError"):
+        return layer.cmd["huskError"]
+    if not layer.cmd.get("usd"):
+        return "Set the USD file for the husk render."
+    if str(layer.chunk) != "1":
+        return "husk renders one frame per task: set the chunk size to 1."
+    return None
+
+
 class HoudiniSubmitWidget(Submit.CueSubmitWidget):
     """Refuses a job whose services do not pin this Houdini version."""
 
@@ -167,10 +237,15 @@ class HoudiniSubmitWidget(Submit.CueSubmitWidget):
         super(HoudiniSubmitWidget, self).__init__(*args, **kwargs)
         self.dccVersion = dccVersion
 
+    def getJobData(self):
+        jobData = super(HoudiniSubmitWidget, self).getJobData()
+        jobData["layers"] = split_husk_layers(jobData["layers"])
+        return jobData
+
     def validate(self, jobData):
         for layer in jobData.get("layers") or []:
             error = (service_error(layer.services, self.dccVersion)
-                     or env_error(layer.cmd))
+                     or env_error(layer.cmd) or husk_error(layer))
             if error:
                 return self.errorInJobData("ERROR: Job not submitted!\n" + error)
         return super(HoudiniSubmitWidget, self).validate(jobData)
@@ -194,7 +269,7 @@ def build_window(info):
     def update_chunk():
         # A simulation runs as one task: chunk = every frame in the range.
         settings = widget.settingsWidget
-        if settings.wholeRange.getter():
+        if settings.wholeRange.getter() and not settings.husk():
             try:
                 size = FrameSet(widget.frameBox.frameSpecInput.text()).size()
             except Exception:  # pylint: disable=broad-except
@@ -208,10 +283,16 @@ def build_window(info):
         widget.layerNameInput.setText(node["path"].rsplit("/", 1)[-1])
         widget.frameBox.frameSpecInput.setText(node["range"])
         widget.settingsWidget.wholeRange.setter(int(node["simulation"]))
+        husk = node.get("husk")
+        widget.settingsWidget.useHusk.setter(0)
+        widget.settingsWidget.useHusk.setEnabled(bool(husk))
+        widget.settingsWidget.usdInput.setEnabled(bool(husk))
+        widget.settingsWidget.usdInput.setText(husk["usd"] if husk else "")
         update_chunk()
 
     widget.settingsWidget.nodeSelector.optionsMenu.triggered.connect(node_changed)
     widget.settingsWidget.wholeRange.valueChanged.connect(update_chunk)
+    widget.settingsWidget.useHusk.valueChanged.connect(update_chunk)
     widget.frameBox.frameSpecInput.textChanged.connect(update_chunk)
     node_changed()
 

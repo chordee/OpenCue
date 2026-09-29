@@ -47,6 +47,12 @@ HOUDINI_INFO = {
          "simulation": False},
         {"path": "/obj/geo1/sim_cache", "type": "filecache::2.0", "range": "1-10",
          "simulation": True},
+        {"path": "/stage/karma1", "type": "karma", "range": "1-3", "simulation": False,
+         "husk": {"args": ["--renderer", "BRAY_HdKarmaXPU"],
+                  "usd": "P:/projects/opencue_test/scenes/usd/hou_submit_test.karma1.usd"}},
+        {"path": "/out/usdrender1", "type": "usdrender", "range": "1-3", "simulation": False,
+         "husk": {"error": "Output Picture is overridden on /out/usdrender1",
+                  "usd": "P:/projects/opencue_test/scenes/usd/hou_submit_test.usdrender1.usd"}},
     ],
 }
 NUKE_SCRIPT = "P:/projects/opencue_test/scenes/nuke_submit_test.nk"
@@ -145,7 +151,44 @@ def check_houdini(submit):
         check_env(widget, "houdini " + path.rsplit("/", 1)[-1])
         if submit:
             widget.submit()
+    check_husk(widget, submit)
     window.close()
+
+
+def check_husk(widget, submit):
+    """A husk layer becomes an export layer and a husk layer that depends on it."""
+    settings = widget.settingsWidget
+    script = opencue_houdini_submit.RENDER_SCRIPT
+    usd = "P:/projects/opencue_test/scenes/usd/hou_submit_test.karma1.usd"
+    select_node(widget, "/obj/geo1/convert_cache")
+    check("husk is off for a cache node", settings.useHusk.isEnabled(), False)
+    select_node(widget, "/stage/karma1")
+    check("husk is off by default", len(widget.getJobData()["layers"]), 1)
+    settings.useHusk.setter(1)
+    fill(widget, "check_husk")
+    layers = widget.getJobData()["layers"]
+    check("husk layers", [(l.name, l.layerRange, str(l.chunk), l.dependType) for l in layers],
+          [("check_husk_usd", "1-3", "3", ""), ("check_husk", "1-3", "1", "Layer")])
+    check("export command", Submission.buildLayerCommand(layers[0]),
+          "ocrun houdini 22.0.429 hython {0} --export-usd {1} {2} /stage/karma1 #FRAMESPEC#"
+          .format(script, usd, HIP))
+    check("husk command", Submission.buildLayerCommand(layers[1]),
+          "ocrun houdini 22.0.429 husk --make-output-path --frame #IFRAME# --frame-count 1 "
+          "--renderer BRAY_HdKarmaXPU " + usd)
+    check("husk layer services", [l.services for l in layers], [["houdini2204"]] * 2)
+    check("validate husk", widget.validate(widget.getJobData()), True)
+    widget.chunkInput.setText("2")
+    widget.jobDataChanged()
+    check("husk with chunk 2 is rejected", widget.validate(widget.getJobData()), False)
+    widget.chunkInput.setText("1")
+    widget.jobDataChanged()
+    if submit:
+        widget.submit()
+    select_node(widget, "/out/usdrender1")
+    settings.useHusk.setter(1)
+    fill(widget, "check_husk_error")
+    check("husk error is rejected", widget.validate(widget.getJobData()), False)
+    settings.useHusk.setter(0)
 
 
 def check_nuke(submit):
