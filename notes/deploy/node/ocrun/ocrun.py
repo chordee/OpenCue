@@ -10,11 +10,13 @@ Where each version is installed differs from machine to machine, so it is
 looked up in a per-machine config file (dcc.toml). Job commands therefore stay
 the same on every node, whatever the OS.
 
-A job that sets OCRUN_REZ (a Rez package request) runs the program through
-rez-env instead, and the Rez packages decide where the DCC is.
+A job that sets OCRUN_REZ (a Rez package request) runs the program in the
+environment rez-env resolves instead, and the Rez packages decide where the
+DCC is.
 
 ASCII ONLY.
 """
+import json
 import os
 import subprocess
 import sys
@@ -82,13 +84,27 @@ def main(argv=None):
         return 2
 
     product, version, program, args = argv[0], argv[1], argv[2], argv[3:]
+    env = build_env(config, product)
     request = os.environ.get("OCRUN_REZ", "").split()
     if request:
-        command = rez_command(config, request, program, args)
-        if not command:
+        rez_env = find_rez_env(config)
+        if not rez_env:
             print("[ocrun] OCRUN_REZ is set but rez-env was not found: check [rez] rez_env in %s"
                   % path, file=sys.stderr)
             return 127
+        env = rez_environ(rez_env, request, env)
+        if env is None:
+            return 1
+        exe = None
+        for folder in env.get("PATH", "").split(os.pathsep):
+            exe = find_program(folder, program) if folder else None
+            if exe:
+                break
+        if not exe:
+            print("[ocrun] %s not found in the Rez environment of %s"
+                  % (program, " ".join(request)), file=sys.stderr)
+            return 127
+        command = [exe] + args
     else:
         bindir = config.get(product, {}).get(version)
         if not bindir:
@@ -102,35 +118,56 @@ def main(argv=None):
         command = [exe] + args
 
     print("[ocrun] %s %s: %s" % (product, version, " ".join(command)), flush=True)
-    env = build_env(config, product)
     patterns = PRODUCT_FAIL_PATTERNS.get(product)
     if not patterns:
         return subprocess.call(command, env=env)
     return run_checked(command, env, patterns)
 
 
-def rez_command(config, request, program, args):
-    """Run the program in a Rez environment, which also puts it on PATH.
+def find_rez_env(config):
+    rez_env = config.get("rez", {}).get("rez_env")
+    if rez_env:
+        return rez_env if os.path.isfile(rez_env) and os.access(rez_env, os.X_OK) else None
+    for folder in os.environ.get("PATH", "").split(os.pathsep):
+        rez_env = find_program(folder, "rez-env") if folder else None
+        if rez_env:
+            return rez_env
+    return None
+
+
+# Prints the environment as JSON. No quotes, $, % or &: it passes through the
+# shell rez-env uses.
+DUMP_ENV = "import json,os;print(json.dumps(dict(os.environ)))"
+
+
+def rez_environ(rez_env, request, env):
+    """The environment the Rez packages set up, or None when the resolve fails.
+
+    rez-env runs its command through a shell (PowerShell or cmd), which rewrites
+    $, %, & and quotes in arguments. So rez-env only prints the environment,
+    and ocrun then starts the program itself, with the arguments untouched.
 
     OCRUN_REZ holds the package request, OCRUN_REZ_TIME the submit time
     (epoch seconds) so every frame resolves the same versions.
     """
-    rez_env = config.get("rez", {}).get("rez_env")
-    if rez_env:
-        if not (os.path.isfile(rez_env) and os.access(rez_env, os.X_OK)):
-            return None
-    else:
-        for folder in os.environ.get("PATH", "").split(os.pathsep):
-            rez_env = find_program(folder, "rez-env") if folder else None
-            if rez_env:
-                break
-    if not rez_env:
-        return None
     command = [rez_env] + request
     if os.environ.get("OCRUN_REZ_TIME"):
         command += ["--time", os.environ["OCRUN_REZ_TIME"]]
     # --no-local: a render never picks up a developer's local packages.
-    return command + ["--no-local", "--", program] + args
+    # -I: the packages' PYTHONPATH and PYTHONHOME do not reach this python.
+    command += ["--no-local", "--", sys.executable, "-I", "-c", DUMP_ENV]
+    print("[ocrun] resolving: %s" % " ".join(command), flush=True)
+    proc = subprocess.run(command, env=env, stdout=subprocess.PIPE)
+    lines = proc.stdout.decode("utf-8", "replace").strip().splitlines()
+    if proc.returncode == 0 and lines:
+        try:
+            return json.loads(lines[-1])
+        except ValueError:
+            pass
+    print("\n".join(lines), flush=True)
+    print("[ocrun] the Rez resolve failed (rez-env exited with %d)" % proc.returncode,
+          file=sys.stderr)
+    return None
 
 
 def find_program(bindir, program):

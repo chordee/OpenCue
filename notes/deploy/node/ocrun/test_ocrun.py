@@ -109,13 +109,18 @@ class OcrunTest(unittest.TestCase):
         self.assertEqual(ocrun.main(["maya", "2027", "no_such_program"]), 127)
 
     def fake_rez_env(self):
-        """A rez-env that records its arguments and STUDIO_LICENSE."""
+        """A rez-env that records its arguments and STUDIO_LICENSE, then runs
+        the command after -- with BINDIR on PATH, like a resolved package."""
         record = os.path.join(self.tmp, "rez.json")
         script = os.path.join(self.tmp, "fake_rez.py")
         with open(script, "w") as f:
-            f.write("import json, os, sys\n"
+            f.write("import json, os, subprocess, sys\n"
                     "json.dump([sys.argv[1:], os.environ.get('STUDIO_LICENSE')], "
-                    "open(%r, 'w'))\n" % record)
+                    "open(%r, 'w'))\n"
+                    "env = dict(os.environ, REZ_USED_REQUEST=sys.argv[1])\n"
+                    "env['PATH'] = %r + os.pathsep + env['PATH']\n"
+                    "command = sys.argv[sys.argv.index('--') + 1:]\n"
+                    "sys.exit(subprocess.call(command, env=env))\n" % (record, BINDIR))
         if os.name == "nt":
             rez_env = os.path.join(self.tmp, "rez-env.bat")
             with open(rez_env, "w") as f:
@@ -133,23 +138,40 @@ class OcrunTest(unittest.TestCase):
             f.write("[rez]\nrez_env = '%s'\n" % rez_env)
         os.environ["OCRUN_REZ"] = "houdini-22.0.429 studio_ocio"
         os.environ["OCRUN_REZ_TIME"] = "1727500000"
+        # The program is only on the PATH the packages set up.
+        os.environ["PATH"] = self.tmp
+        out = os.path.join(self.tmp, "out.json")
+        # Characters PowerShell or cmd would rewrite reach the program as they are.
+        special = ["$HIP", "%TEMP%", "a&b", "x^y", 'q"q', "P:/a b/c.hip"]
         # houdini is not in dcc.toml: with Rez, the packages find the DCC.
-        rc = ocrun.main(["houdini", "22.0.429", "hython", "-c", "x"])
-        self.assertEqual(rc, 0)
+        rc = ocrun.main(["houdini", "22.0.429", PROGRAM, "-c",
+                         "import json, os, sys\n"
+                         "json.dump([sys.argv[2:], os.environ.get('STUDIO_LICENSE'),"
+                         " os.environ.get('REZ_USED_REQUEST')], open(sys.argv[1], 'w'))\n"
+                         "sys.exit(3)", out] + special)
+        self.assertEqual(rc, 3)
         with open(record) as f:
             args, license = json.load(f)
         self.assertEqual(args, ["houdini-22.0.429", "studio_ocio", "--time", "1727500000",
-                                "--no-local", "--", "hython", "-c", "x"])
-        # dcc.toml [env] still reaches the program through rez-env.
+                                "--no-local", "--", sys.executable, "-I", "-c", ocrun.DUMP_ENV])
+        # dcc.toml [env] reaches rez-env, so the Rez settings can live there.
         self.assertEqual(license, "5053@lic")
+        with open(out) as f:
+            self.assertEqual(json.load(f), [special, "5053@lic", "houdini-22.0.429"])
 
     def test_rez_env_from_path(self):
         rez_env, record = self.fake_rez_env()
         os.environ["OCRUN_REZ"] = "nuke-17.0v1"
-        os.environ["PATH"] = self.tmp + os.pathsep + os.environ.get("PATH", "")
-        self.assertEqual(ocrun.main(["nuke", "17.0v1", "Nuke17.0", "-t"]), 0)
+        os.environ["PATH"] = self.tmp
+        self.assertEqual(ocrun.main(["nuke", "17.0v1", PROGRAM, "-c", "pass"]), 0)
         with open(record) as f:
-            self.assertEqual(json.load(f)[0], ["nuke-17.0v1", "--no-local", "--", "Nuke17.0", "-t"])
+            self.assertEqual(json.load(f)[0][:3], ["nuke-17.0v1", "--no-local", "--"])
+
+    def test_program_not_in_the_rez_environment(self):
+        self.fake_rez_env()
+        os.environ["OCRUN_REZ"] = "nuke-17.0v1"
+        os.environ["PATH"] = self.tmp
+        self.assertEqual(ocrun.main(["nuke", "17.0v1", "no_such_program"]), 127)
 
     def test_rez_env_not_found(self):
         os.environ["OCRUN_REZ"] = "houdini-22.0.429"
