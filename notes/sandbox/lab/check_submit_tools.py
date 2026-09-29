@@ -35,6 +35,7 @@ sys.path.insert(0, ARGS.houdini_dir)
 sys.path.insert(0, ARGS.nuke_dir)
 
 import opencue_houdini_submit  # noqa: E402
+import opencue_husk_submit  # noqa: E402
 import opencue_maya_submit  # noqa: E402
 import opencue_nuke_submit  # noqa: E402
 from cuesubmit import Submission  # noqa: E402
@@ -191,6 +192,45 @@ def check_husk(widget, submit):
     settings.useHusk.setter(0)
 
 
+def check_husk_tool(submit):
+    """The standalone husk window: version from the service tags, checks before submit."""
+    print("--- husk (standalone)")
+    usd = "P:/projects/opencue_test/scenes/usd/hou_submit_test.karma_render.usd"
+    window, widget = opencue_husk_submit.build_window(usd)
+    settings = widget.settingsWidget
+    check("versions from service tags", "22.0.429" in opencue_husk_submit.houdini_versions(), True)
+    for action in settings.versionSelector.optionsMenu.actions():
+        if action.text() == "22.0.429":
+            action.trigger()
+    for action in settings.rendererSelector.optionsMenu.actions():
+        if action.text() == "Karma XPU":
+            action.trigger()
+    settings.argsInput.setText("--settings /Render/rendersettings")
+    widget.frameBox.frameSpecInput.setText("1-3")
+    layer = fill(widget, "check_husk_tool")
+    check("husk tool service", layer.services, ["houdini2204"])
+    check("husk tool command", Submission.buildLayerCommand(layer),
+          "ocrun houdini 22.0.429 husk --make-output-path --frame #IFRAME# --frame-count 1 "
+          "--renderer BRAY_HdKarmaXPU --settings /Render/rendersettings " + usd)
+    check("husk tool validate", widget.validate(widget.getJobData()), True)
+    check_services(widget, "houdini2204", ["houdini"])
+    check_env(widget, "husk tool")
+    widget.chunkInput.setText("2")
+    widget.jobDataChanged()
+    check("husk tool chunk 2 is rejected", widget.validate(widget.getJobData()), False)
+    widget.chunkInput.setText("1")
+    for bad in ("", "P:/no/such/file.usd", "P:/a b/shot.usd"):
+        settings.usdInput.setText(bad)
+        widget.jobDataChanged()
+        check("husk tool rejects USD {0!r}".format(bad), widget.validate(widget.getJobData()),
+              False)
+    settings.usdInput.setText(usd)
+    widget.jobDataChanged()
+    if submit:
+        widget.submit()
+    window.close()
+
+
 def check_nuke(submit):
     print("--- Nuke")
     window, widget = opencue_nuke_submit.build_window(NUKE_INFO)
@@ -224,6 +264,7 @@ def main():
           opencue_nuke_submit.__file__, sep="\n  ")
     check_maya(ARGS.submit)
     check_houdini(ARGS.submit)
+    check_husk_tool(ARGS.submit)
     check_nuke(ARGS.submit)
     print("\n{0} failure(s)".format(len(FAILURES)))
     return 1 if FAILURES else 0
