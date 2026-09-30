@@ -6,7 +6,8 @@
 # or drop a USD file on opencue_husk_submit.bat. Shows the standard CueSubmit
 # window with a husk panel:
 #     render command  ocrun houdini <version> husk --make-output-path
-#                     --frame #IFRAME# --frame-count 1 [--renderer ...] [args] <usd>
+#                     --frame #IFRAME# --frame-count 1 [--renderer ...]
+#                     [--settings/--camera/--output/--res overrides] [args] <usd>
 #     service         the one whose tags hold houdini_<version>
 # The Houdini versions offered are the ones some service is tagged for.
 #
@@ -46,12 +47,39 @@ def houdini_versions():
     return [".".join(str(n) for n in v) for v in sorted(versions, reverse=True)]
 
 
-def husk_command(version, usd, renderer, extra):
+# Overrides of what the USD file sets; an empty field keeps the file's value.
+OVERRIDES = (("settings", "Render Settings:", "--settings", "/Render/rendersettings"),
+             ("camera", "Camera:", "--camera", "/cameras/shotCam"),
+             ("output", "Output:", "--output", "P:/projects/show/render/shot.$F4.exr"),
+             ("res", "Resolution:", "--res", "1920x1080"))
+RESOLUTION = re.compile(r"^(\d+)\s*[xX ]\s*(\d+)$")
+
+
+def husk_command(version, usd, renderer, extra, overrides=None):
     args = []
     if RENDERERS.get(renderer):
         args += ["--renderer", RENDERERS[renderer]]
+    for key, _, flag, _ in OVERRIDES:
+        value = (overrides or {}).get(key, "").strip()
+        if not value:
+            continue
+        match = RESOLUTION.match(value) if key == "res" else None
+        args += [flag] + (list(match.groups()) if match else [value])
     args += extra.split()
     return HUSK_CMD.format(version=version, usd=usd, args="".join(a + " " for a in args))
+
+
+def overrides_error(overrides):
+    for key, label, _, _ in OVERRIDES:
+        value = overrides.get(key, "").strip()
+        if not value:
+            continue
+        if key == "res":
+            if not RESOLUTION.match(value):
+                return "Resolution must be WIDTHxHEIGHT, for example 1920x1080."
+        elif " " in value or "%" in value:
+            return "{0} must not contain spaces or %: {1}".format(label.rstrip(":"), value)
+    return None
 
 
 class HuskSettings(SettingsWidgets.BaseSettingsWidget):
@@ -67,27 +95,36 @@ class HuskSettings(SettingsWidgets.BaseSettingsWidget):
             multiselect=False)
         self.rendererSelector = Widgets.CueSelectPulldown(
             "Renderer", options=list(RENDERERS), multiselect=False)
+        self.overrideInputs = dict(
+            (key, Widgets.CueLabelLineEdit(
+                label, tooltip="Leave empty to use the USD file's value. Example: " + example))
+            for key, label, _, example in OVERRIDES)
         self.argsInput = Widgets.CueLabelLineEdit(
-            "Extra husk arguments:", tooltip="For example --settings /Render/rs --camera /cam")
-        for widget in (self.usdInput, self.versionSelector, self.rendererSelector,
-                       self.argsInput):
+            "Extra husk arguments:", tooltip="Any other husk options, for example --res-scale 50")
+        for widget in ([self.usdInput, self.versionSelector, self.rendererSelector]
+                       + [self.overrideInputs[key] for key, _, _, _ in OVERRIDES]
+                       + [self.argsInput]):
             self.groupLayout.addWidget(widget)
         self.envInput = add_env_box(self)
-        self.usdInput.textChanged.connect(lambda: self.dataChanged.emit(None))
-        self.argsInput.textChanged.connect(lambda: self.dataChanged.emit(None))
+        for widget in [self.usdInput, self.argsInput] + list(self.overrideInputs.values()):
+            widget.textChanged.connect(lambda: self.dataChanged.emit(None))
         self.versionSelector.optionsMenu.triggered.connect(lambda: self.dataChanged.emit(None))
         self.rendererSelector.optionsMenu.triggered.connect(lambda: self.dataChanged.emit(None))
 
     def version(self):
         return self.versionSelector.getChecked()[0]
 
+    def overrides(self):
+        return dict((key, widget.text()) for key, widget in self.overrideInputs.items())
+
     def getCommandData(self):
         renderer = self.rendererSelector.getChecked()[0]
         return {"commandTextBox": husk_command(self.version(), self.usdInput.text(),
-                                               renderer, self.argsInput.text()),
+                                               renderer, self.argsInput.text(),
+                                               self.overrides()),
                 "usd": self.usdInput.text(), "version": self.version(),
                 "renderer": renderer, "extra": self.argsInput.text(),
-                "env": self.envInput.toPlainText()}
+                "overrides": self.overrides(), "env": self.envInput.toPlainText()}
 
     def setCommandData(self, commandData):
         self.usdInput.setText(commandData.get("usd", self.usdInput.text()))
@@ -96,6 +133,8 @@ class HuskSettings(SettingsWidgets.BaseSettingsWidget):
         if commandData.get("renderer"):
             self.rendererSelector.setChecked([commandData["renderer"]])
         self.argsInput.setText(commandData.get("extra", ""))
+        for key, widget in self.overrideInputs.items():
+            widget.setText(commandData.get("overrides", {}).get(key, ""))
         self.envInput.setPlainText(commandData.get("env", ""))
 
 
@@ -120,6 +159,7 @@ class HuskSubmitWidget(Submit.CueSubmitWidget):
     def validate(self, jobData):
         for layer in jobData.get("layers") or []:
             error = (usd_error(layer.cmd.get("usd"))
+                     or overrides_error(layer.cmd.get("overrides", {}))
                      or service_error(layer.services, layer.cmd.get("version", ""))
                      or env_error(layer.cmd))
             if not error and str(layer.chunk) != "1":

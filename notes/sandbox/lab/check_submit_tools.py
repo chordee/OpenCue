@@ -205,13 +205,35 @@ def check_husk_tool(submit):
     for action in settings.rendererSelector.optionsMenu.actions():
         if action.text() == "Karma XPU":
             action.trigger()
-    settings.argsInput.setText("--settings /Render/rendersettings")
+    settings.argsInput.setText("--res-scale 50")
+    overrides = settings.overrideInputs
+    overrides["settings"].setText("/Render/rendersettings")
+    overrides["camera"].setText("/cameras/shotCam")
+    overrides["output"].setText("P:/projects/opencue_test/render/husk/shot.$F4.exr")
+    overrides["res"].setText("1920x1080")
     widget.frameBox.frameSpecInput.setText("1-3")
     layer = fill(widget, "check_husk_tool")
     check("husk tool service", layer.services, ["houdini2204"])
     check("husk tool command", Submission.buildLayerCommand(layer),
           "ocrun houdini 22.0.429 husk --make-output-path --frame #IFRAME# --frame-count 1 "
-          "--renderer BRAY_HdKarmaXPU --settings /Render/rendersettings " + usd)
+          "--renderer BRAY_HdKarmaXPU --settings /Render/rendersettings --camera /cameras/shotCam "
+          "--output P:/projects/opencue_test/render/husk/shot.$F4.exr --res 1920 1080 "
+          "--res-scale 50 " + usd)
+    for key, bad in (("res", "1920"), ("output", "P:/a b/shot.$F4.exr"),
+                     ("output", "P:/%SHOT%/shot.$F4.exr"), ("camera", "/cam one")):
+        good = overrides[key].text()
+        overrides[key].setText(bad)
+        widget.jobDataChanged()
+        check("husk tool rejects {0} {1!r}".format(key, bad),
+              widget.validate(widget.getJobData()), False)
+        overrides[key].setText(good)
+    for key in overrides:
+        overrides[key].setText("")
+    widget.jobDataChanged()
+    check("husk tool without overrides", Submission.buildLayerCommand(
+        widget.jobTreeWidget.currentLayerData),
+          "ocrun houdini 22.0.429 husk --make-output-path --frame #IFRAME# --frame-count 1 "
+          "--renderer BRAY_HdKarmaXPU --res-scale 50 " + usd)
     check("husk tool validate", widget.validate(widget.getJobData()), True)
     check_services(widget, "houdini2204", ["houdini"])
     check_env(widget, "husk tool")
