@@ -69,6 +69,18 @@ def husk_command(version, usd, renderer, extra, overrides=None):
     return HUSK_CMD.format(version=version, usd=usd, args="".join(a + " " for a in args))
 
 
+# Each task renders the frame OpenCue hands it; these would change that.
+FRAME_FLAGS = ("-f", "--frame", "-n", "--frame-count", "-i", "--frame-inc", "--frame-list")
+
+
+def extra_error(extra):
+    for arg in extra.split():
+        if arg.split("=", 1)[0] in FRAME_FLAGS:
+            return ("Extra husk arguments must not set frames ({0}): OpenCue sets the "
+                    "frame of each task.".format(arg))
+    return None
+
+
 def overrides_error(overrides):
     for key, label, _, _ in OVERRIDES:
         value = overrides.get(key, "").strip()
@@ -148,6 +160,9 @@ def usd_error(usd):
         return "Set the USD file."
     if " " in usd:
         return "The USD path must not contain spaces: {0}".format(usd)
+    if not os.path.isabs(usd):
+        # A render node runs the task in its own directory.
+        return "The USD path must be absolute: {0}".format(usd)
     if not os.path.isfile(usd):
         return "USD file not found: {0}".format(usd)
     return None
@@ -160,6 +175,7 @@ class HuskSubmitWidget(Submit.CueSubmitWidget):
         for layer in jobData.get("layers") or []:
             error = (usd_error(layer.cmd.get("usd"))
                      or overrides_error(layer.cmd.get("overrides", {}))
+                     or extra_error(layer.cmd.get("extra", ""))
                      or service_error(layer.services, layer.cmd.get("version", ""))
                      or env_error(layer.cmd))
             if not error and str(layer.chunk) != "1":

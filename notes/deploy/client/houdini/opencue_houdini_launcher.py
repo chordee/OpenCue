@@ -108,6 +108,9 @@ def _husk(node):
         return {"args": ["--renderer", "BRAY_HdKarmaXPU" if xpu else "BRAY_HdKarma"]}
     if kind not in ("usdrender", "usdrender_rop"):
         return None
+    if node.parm("dorenderexisting").eval():
+        return {"error": "Render Existing File is on for {0}; submit that USD file with "
+                         "opencue_husk_submit instead.".format(node.path())}
     if node.parm("outputimage").evalAsString():
         return {"error": "Output Picture is overridden on {0}; husk renders the image "
                          "paths of the render settings. Set the path there instead."
@@ -118,6 +121,12 @@ def _husk(node):
         value = node.parm(parm).evalAsString()
         if value and value != "default_delegate":
             args += [flag, value]
+    resolution = node.parm("override_res").evalAsString()
+    if resolution == "scale":
+        args += ["--res-scale", node.parm("res_scale").evalAsString()]
+    elif resolution == "specific":
+        args += ["--res", node.parm("res_user1").evalAsString(),
+                 node.parm("res_user2").evalAsString()]
     return {"args": args}
 
 
@@ -131,8 +140,10 @@ def _nodes():
                 "range": _frame_range(n), "simulation": _is_simulation(n)}
         husk = _husk(n)
         if husk:
+            # The full node path, so nodes of the same name in different
+            # networks do not share a file.
             husk["usd"] = "{0}/usd/{1}.{2}.usd".format(
-                hip_dir, os.path.splitext(hip_file)[0], n.name())
+                hip_dir, os.path.splitext(hip_file)[0], n.path().strip("/").replace("/", "_"))
             item["husk"] = husk
         info.append(item)
     return info

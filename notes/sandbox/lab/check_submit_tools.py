@@ -241,7 +241,13 @@ def check_husk_tool(submit):
     widget.jobDataChanged()
     check("husk tool chunk 2 is rejected", widget.validate(widget.getJobData()), False)
     widget.chunkInput.setText("1")
-    for bad in ("", "P:/no/such/file.usd", "P:/a b/shot.usd"):
+    for bad in ("--frame 5", "-n 10", "--frame-list=1,2"):
+        settings.argsInput.setText(bad)
+        widget.jobDataChanged()
+        check("husk tool rejects extra {0!r}".format(bad), widget.validate(widget.getJobData()),
+              False)
+    settings.argsInput.setText("--res-scale 50")
+    for bad in ("", "P:/no/such/file.usd", "P:/a b/shot.usd", "usd/relative.usd"):
         settings.usdInput.setText(bad)
         widget.jobDataChanged()
         check("husk tool rejects USD {0!r}".format(bad), widget.validate(widget.getJobData()),
