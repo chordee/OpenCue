@@ -75,7 +75,8 @@ FRAME_FLAGS = ("-f", "--frame", "-n", "--frame-count", "-i", "--frame-inc", "--f
 
 def extra_error(extra):
     for arg in extra.split():
-        if arg.split("=", 1)[0] in FRAME_FLAGS:
+        # -f5: a short option with its value attached.
+        if arg.split("=", 1)[0] in FRAME_FLAGS or arg[:2] in ("-f", "-n", "-i"):
             return ("Extra husk arguments must not set frames ({0}): OpenCue sets the "
                     "frame of each task.".format(arg))
     return None

@@ -241,7 +241,7 @@ def check_husk_tool(submit):
     widget.jobDataChanged()
     check("husk tool chunk 2 is rejected", widget.validate(widget.getJobData()), False)
     widget.chunkInput.setText("1")
-    for bad in ("--frame 5", "-n 10", "--frame-list=1,2"):
+    for bad in ("--frame 5", "-n 10", "--frame-list=1,2", "-f5", "-i2"):
         settings.argsInput.setText(bad)
         widget.jobDataChanged()
         check("husk tool rejects extra {0!r}".format(bad), widget.validate(widget.getJobData()),
