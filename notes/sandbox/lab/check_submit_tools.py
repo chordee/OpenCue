@@ -1,17 +1,17 @@
 #!/usr/bin/env python
-"""Maya / Houdini / Nuke 投遞視窗的回歸測試。
+"""Regression test suite for Maya / Houdini / Nuke submission dialogs.
 
-兩個投遞工具依賴 CueSubmit 的內部類別與欄位（InMayaSettings、MAYA_RENDER_CMD、
-Shell layer 的 commandTextBox、CueSelectPulldown、chunkInput）。同步上游 CueSubmit
-之後先跑這支，確認組出的指令、service、frame 範圍、chunk 都沒變。
+The submission tools depend on CueSubmit internal classes and fields (InMayaSettings, MAYA_RENDER_CMD,
+Shell layer commandTextBox, CueSelectPulldown, chunkInput). Run this script after syncing upstream CueSubmit
+to verify that generated commands, services, frame ranges, and chunk settings remain unchanged.
 
-在 OpenCue venv 執行，需要連得到 Cuebot（service 以 tag 反查）：
+Executed in OpenCue venv; requires network access to Cuebot (services resolved via tag queries):
 
     set QT_QPA_PLATFORM=offscreen
-    C:\\opencue\\venv\\Scripts\\python.exe check_submit_tools.py            只檢查，不送出
-    C:\\opencue\\venv\\Scripts\\python.exe check_submit_tools.py --submit   檢查後實際送出
+    C:\\opencue\\venv\\Scripts\\python.exe check_submit_tools.py            Dry-run check only
+    C:\\opencue\\venv\\Scripts\\python.exe check_submit_tools.py --submit   Submit live jobs post-check
 
-預期值依本機 sandbox（Maya 2027、Houdini 22.0.429、Nuke 17.0v1、service maya2027 / houdini2204 / nuke17）。
+Expected values match local sandbox (Maya 2027, Houdini 22.0.429, Nuke 17.0v1, services maya2027 / houdini2204 / nuke17).
 """
 import argparse
 import os
@@ -25,7 +25,7 @@ CLIENT = os.path.join(HERE, "..", "..", "deploy", "client")
 # The tools are imported from the repo by default. Point these at the installed
 # copies (for example P:/pipeline/opencue/client/maya) to test an installation.
 ap = argparse.ArgumentParser()
-ap.add_argument("--submit", action="store_true", help="實際送出 job")
+ap.add_argument("--submit", action="store_true", help="Submit jobs to farm")
 ap.add_argument("--maya-dir", default=os.path.join(CLIENT, "maya"))
 ap.add_argument("--houdini-dir", default=os.path.join(CLIENT, "houdini"))
 ap.add_argument("--nuke-dir", default=os.path.join(CLIENT, "nuke"))

@@ -19,7 +19,7 @@ These prerequisites exist outside Docker and cannot be managed via Portainer.
 
 **Important: Ports 8443 and 3000 lack authentication by default.** Reaching port 8443 allows control over the entire render farm via `cueadmin`, and reaching port 3000 permits killing/retrying jobs in CueWeb. **Expose these ports strictly to trusted studio internal networks.**
 
-Reference: [`notes/sandbox/11` Section 3](../sandbox/11-正式部署風險與待辦.md#3-網路通訊矩陣與防火牆).
+Reference: [`notes/sandbox/11` Section 3](../sandbox/11-production-risks-and-todos.md#3-network-communication-matrix-and-firewall-requirements).
 
 ### 1.2 Shared Storage Mounted on Host
 
@@ -28,7 +28,7 @@ CueWeb requires direct filesystem access to frame logs. Ensure IT mounts the sha
 - If web thumbnail previews are desired, render output storage must also be mounted, e.g. `/mnt/projects/render`.
 - If viewing logs in CueWeb is not required, this step may be omitted.
 
-Reference: [`notes/sandbox/13`](../sandbox/13-CueWeb與RESTGateway.md), [`notes/sandbox/16`](../sandbox/16-Portainer與SSH的分工.md) (Alternatively, CIFS Docker volumes can be used without host mounts, but `cifs-utils` is still required on the host).
+Reference: [`notes/sandbox/13`](../sandbox/13-cueweb-and-rest-gateway.md), [`notes/sandbox/16`](../sandbox/16-portainer-and-ssh-division.md) (Alternatively, CIFS Docker volumes can be used without host mounts, but `cifs-utils` is still required on the host).
 
 ### 1.3 DNS Resolution
 
@@ -40,7 +40,7 @@ Verify on the Docker host:
 getent hosts RENDER01        # Must resolve successfully
 ```
 
-Reference: [`notes/sandbox/11` Section 1](../sandbox/11-正式部署風險與待辦.md#1-多節點的-dns-解析別用-extra_hosts), [`notes/sandbox/22` Section 6](../sandbox/22-兩種部署路線.md#六主檔改了什麼讓它只填環境變數就能部署).
+Reference: [`notes/sandbox/11` Section 1](../sandbox/11-production-risks-and-todos.md#1-multi-node-dns-resolution-avoid-hardcoded-extra_hosts), [`notes/sandbox/22` Section 6](../sandbox/22-two-deployment-routes.md#6-primary-manifest-architecture-environment-driven-configuration).
 
 ### 1.4 Docker Container Log Rotation
 
@@ -53,7 +53,7 @@ Docker's default JSON log driver **does not limit log file size**. Configure log
 }
 ```
 
-Reference: [`notes/sandbox/15` Section 6](../sandbox/15-空間規劃.md#6-docker-宿主容器-log-容易被忽略).
+Reference: [`notes/sandbox/15` Section 6](../sandbox/15-storage-planning.md#6-docker-host-container-log-rotation).
 
 ### 1.5 Internet Access to ghcr.io
 
@@ -71,7 +71,7 @@ Required only when pulling pre-built images from GitHub Container Registry (GHCR
 
 Both routes share the identical compose file [`server/opencue.portainer.yml`](server/opencue.portainer.yml), **requiring no changes to the YAML itself**.
 
-Reference: [`notes/sandbox/22`](../sandbox/22-兩種部署路線.md) (Both routes verified in practice).
+Reference: [`notes/sandbox/22`](../sandbox/22-two-deployment-routes.md) (Both routes verified in practice).
 
 ---
 
@@ -105,7 +105,7 @@ Other commonly adjusted settings:
 | `OPENCUE_INIT_SHOWS` / `OPENCUE_INIT_SERVICES` | Bootstrap shows and services automatically created post-deployment (Section 4) |
 
 **Why `CUE_FRAME_LOG_DIR` requires forward-slash UNC syntax**: This path is written by Windows render nodes and subsequently read by CueWeb inside a Linux container. Drive letters (e.g. `L:/...`) cannot be resolved inside Linux containers, causing CueWeb to return HTTP 400. The `//server/share/...` forward-slash UNC syntax is the only cross-platform representation valid on both sides.
-Reference: [`notes/sandbox/13`](../sandbox/13-CueWeb與RESTGateway.md), [`notes/sandbox/11` Section 2](../sandbox/11-正式部署風險與待辦.md#2-網路磁碟機代號可用但有一個例外).
+Reference: [`notes/sandbox/13`](../sandbox/13-cueweb-and-rest-gateway.md), [`notes/sandbox/11` Section 2](../sandbox/11-production-risks-and-todos.md#2-network-drive-letters-are-supported-with-one-exception).
 
 ### 3.2 Create the Stack in Portainer
 
@@ -130,7 +130,7 @@ The advantage of Repository mode is that YAML modifications in git are synchroni
 **Why track `studio/release` instead of `studio/main`**:
 `studio/main` is the daily active branch where notes, experimental scripts, and iterative changes are frequently committed. If production tracks it directly, **any push will automatically deploy to production within minutes**, including faulty YAML definitions. The `studio/release` branch is advanced only when production rollouts are intentionally approved, enabling clear release boundaries and simple rollbacks. See [`04-operations.md` Section 1](04-operations.md#1-upgrades-and-rollbacks).
 
-Reference: [`notes/sandbox/23`](../sandbox/23-Portainer的Git模式.md).
+Reference: [`notes/sandbox/23`](../sandbox/23-portainer-git-mode.md).
 
 If mandatory environment variables are missing, deployment fails immediately with explicit diagnostics:
 
@@ -158,7 +158,7 @@ The 5 container images total approximately 6 GB. Downloading from GHCR during in
 - You may ask IT to pre-pull these 5 images directly on the Docker host via `docker pull`.
 - Reverse proxies in front of Portainer might time out during deployment, but the process continues safely in the background.
 
-Reference: [`notes/sandbox/22` Section 8](../sandbox/22-兩種部署路線.md#八把-image-放到-ghcr取代自建-registry).
+Reference: [`notes/sandbox/22` Section 8](../sandbox/22-two-deployment-routes.md#8-publishing-images-to-github-container-registry-ghcr).
 
 ---
 
@@ -182,12 +182,12 @@ If a show has no subscription to a given allocation, nodes in that allocation **
 
 The `init` container subscribes to `local.general`, `local.desktop`, and `cloud.general` by default. Artist workstations commonly reside in `local.desktop`; ensure it is not omitted. If custom allocations exist, append them to `OPENCUE_INIT_ALLOCS`.
 
-Reference: [`notes/sandbox/22` Section 5](../sandbox/22-兩種部署路線.md#五初始化容器-init), [`notes/sandbox/17` Scenario 22](../sandbox/17-故障排查與常見疏失速查.md#場景-22新建的-show-投遞的-job-永遠停在-waiting).
+Reference: [`notes/sandbox/22` Section 5](../sandbox/22-two-deployment-routes.md#5-initialization-container-init), [`notes/sandbox/17` Scenario 22](../sandbox/17-troubleshooting.md#scenario-22-jobs-submitted-to-newly-created-show-stuck-in-waiting).
 
 ### Shows Cannot Be Deleted Once Created
 
 As long as a show has processed at least one job, it cannot be deleted in OpenCue—it can only be disabled. **Plan naming carefully**; avoid using production environments for arbitrary testing.
-Reference: [`notes/sandbox/20`](../sandbox/20-相依性與維運操作.md).
+Reference: [`notes/sandbox/20`](../sandbox/20-dependencies-and-operations.md).
 
 ---
 
@@ -214,7 +214,7 @@ docker compose --env-file .env -f opencue.portainer.yml -f build.yml up -d --bui
 ```
 
 Trade-offs of building on the Docker host:
-- Build cache requires ~**50 GB** disk space; Cuebot compilation takes ~10 minutes, consuming 100% CPU during that window (Reference: [`notes/sandbox/15`](../sandbox/15-空間規劃.md), [`notes/sandbox/22` Section 7](../sandbox/22-兩種部署路線.md#七路線-b-實測)).
+- Build cache requires ~**50 GB** disk space; Cuebot compilation takes ~10 minutes, consuming 100% CPU during that window (Reference: [`notes/sandbox/15`](../sandbox/15-storage-planning.md), [`notes/sandbox/22` Section 7](../sandbox/22-two-deployment-routes.md#7-route-b-empirical-benchmark)).
 - Outbound access to Maven, npm, and PyPI mirrors is required.
 - Stacks managed via CLI offer only limited visibility and management inside Portainer.
 
@@ -251,7 +251,7 @@ Used when the host cannot connect to ghcr.io, or when deploying customized image
 
 **Production internal registries require TLS and authentication** (unverified in sandbox). Without TLS, every Docker host pulling images must configure `insecure-registries` in `daemon.json`, necessitating Docker engine restarts.
 
-Reference: [`notes/sandbox/14`](../sandbox/14-Registry流程.md).
+Reference: [`notes/sandbox/14`](../sandbox/14-registry-workflow.md).
 
 ---
 
@@ -298,10 +298,10 @@ If you only possess Portainer access, verify steps 1 and 2 in the Portainer Cont
 
 - **Resource footprint**: ~130 MB memory total across all 3 containers; image footprints ~1.5 GB.
 - Prometheus is not exposed publicly (no auth). Only Grafana port 3001 should be opened to the internal network.
-- **Upstream `cuebot.json` dashboard is obsolete** (dating from 2021; 9 metrics no longer exist in modern Cuebot), rendering panels largely blank. Build custom dashboards for Cuebot monitoring. For supported metrics, see [`notes/sandbox/24` Section 4](../sandbox/24-派工行為與監控.md#四監控prometheus--grafana).
+- **Upstream `cuebot.json` dashboard is obsolete** (dating from 2021; 9 metrics no longer exist in modern Cuebot), rendering panels largely blank. Build custom dashboards for Cuebot monitoring. For supported metrics, see [`notes/sandbox/24` Section 4](../sandbox/24-dispatch-and-monitoring.md#4-monitoring-infrastructure-prometheus--grafana).
 - Cuebot queue metrics require setting `CUEBOT_METRICS_COLLECTOR=true` in the opencue stack (requires Pull and redeploy).
 
-Reference: [`notes/sandbox/24`](../sandbox/24-派工行為與監控.md).
+Reference: [`notes/sandbox/24`](../sandbox/24-dispatch-and-monitoring.md).
 
 ---
 

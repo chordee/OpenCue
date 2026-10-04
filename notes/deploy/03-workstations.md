@@ -32,7 +32,7 @@ C:\opencue\venv\Scripts\python.exe -m pip install ./proto ./pycue ./pyoutline ./
 ```
 
 This installs PySide6 automatically as a dependency.
-Reference: [`notes/sandbox/10`](../sandbox/10-Windows用戶端工具.md).
+Reference: [`notes/sandbox/10`](../sandbox/10-windows-client-tools.md).
 
 ---
 
@@ -55,7 +55,7 @@ mkdir "%USERPROFILE%\.config\opencue"
 copy notes\deploy\node\cuenimby-workstation.json "%USERPROFILE%\.config\opencue\cuenimby.json"
 ```
 
-Reference: [`notes/sandbox/05` Issue #10](../sandbox/05-可回饋上游的問題.md#10-cuenimby-在全新的-windows-機器上會因建立設定目錄失敗而無法啟動), [`notes/sandbox/10`](../sandbox/10-Windows用戶端工具.md).
+Reference: [`notes/sandbox/05` Issue #10](../sandbox/05-upstream-issues.md#10-cuenimby-fails-to-launch-on-clean-windows-machines-due-to-directory-creation-failure), [`notes/sandbox/10`](../sandbox/10-windows-client-tools.md).
 
 ---
 
@@ -89,7 +89,7 @@ Configuring schedule rules:
 This instructs CueNIMBY: "On Mondays from 09:00 to 18:00, lock this machine; allow rendering outside these hours."
 
 **Always define locked windows without crossing midnight.** Writing cross-midnight active windows such as `18:00-09:00 available` causes CueNIMBY's calculation logic to invert completely, opening the node during work hours and locking it overnight.
-Reference: [`notes/sandbox/09` Pitfall #11](../sandbox/09-NIMBY與混合機隊.md#坑-11跨午夜的排程時段完全失效), `cuenimby/scheduler.py:78-87`.
+Reference: [`notes/sandbox/09` Pitfall #11](../sandbox/09-nimby-and-hybrid-fleet.md#pitfall-11-schedules-crossing-midnight-fail-completely), `cuenimby/scheduler.py:78-87`.
 
 Days omitted from the schedule (e.g. weekends) **retain their previous state without toggling**. Because Friday transitions to available at 18:00, weekends remain open. However, if CueNIMBY is started from scratch on a weekend, it inherits the node's current status at startup.
 Reference: `_check_schedule()` in `cuenimby/scheduler.py`.
@@ -110,7 +110,7 @@ The current studio policy is **not to abort in-flight frames automatically**. Ar
 
 Cancelled frames **return to the waiting queue and restart from scratch on another available node**; this does not count as a task failure or increment retry counters, although prior work on that frame is discarded.
 
-Reference: [`notes/sandbox/24` Section 1](../sandbox/24-派工行為與監控.md#一工作站與專職機同時在線).
+Reference: [`notes/sandbox/24` Section 1](../sandbox/24-dispatch-and-monitoring.md#1-concurrent-workstation-and-dedicated-node-fleet).
 
 ---
 
@@ -174,20 +174,20 @@ The default Show is read from environment variable `PROJECT`.
 
 ### Pre-submission Requirements and Constraints
 
-- **Project paths must not contain spaces.** CueSubmit tokenizes command strings by whitespace, rendering quoting ineffective ([`notes/sandbox/17` Scenario 24](../sandbox/17-故障排查與常見疏失速查.md#場景-24路徑含空白時-frame-失敗)). Studio pipelines must enforce space-free project directory paths.
+- **Project paths must not contain spaces.** CueSubmit tokenizes command strings by whitespace, rendering quoting ineffective ([`notes/sandbox/17` Scenario 24](../sandbox/17-troubleshooting.md#scenario-24-frame-fails-when-path-contains-spaces)). Studio pipelines must enforce space-free project directory paths.
 - **Output directories are governed by the Maya project workspace.** The command line does not inject output directory flags; scenes must reside within a project containing a valid `workspace.mel`, otherwise render outputs fall back to local `Documents\maya\projects\default\images` on the render node.
 - **Workstation environment variables do not transfer to frames.** Pass required settings via the submission dialog Environment field; see [`02-render-nodes.md` "Precedence of Frame Environment Variables"](02-render-nodes.md#precedence-of-frame-environment-variables).
 - **Do not select the built-in `maya` service**, which is tagged `general | desktop` and breaks version binding.
-- **A single camera must be selected.** If left empty, no camera flag is passed and Maya renders all renderable cameras in the scene. When only one renderable camera exists, it is pre-selected. (Upstream CueSubmit outputs `-cam [None]` when unselected; this tool fixes this issue; see [`notes/sandbox/25` Section 5](../sandbox/25-Maya內投遞.md#五人工測試中發現的問題)).
+- **A single camera must be selected.** If left empty, no camera flag is passed and Maya renders all renderable cameras in the scene. When only one renderable camera exists, it is pre-selected. (Upstream CueSubmit outputs `-cam [None]` when unselected; this tool fixes this issue; see [`notes/sandbox/25` Section 5](../sandbox/25-maya-submission.md#5-issues-identified-during-manual-testing)).
 
 ### Verification Status
 
 - Verified end-to-end under Maya 2027: launcher executes in pure `mayapy` without OpenCue packages; submission dialog correctly populates services, command lines, and frame ranges; 10 frames rendered successfully.
-- Migrated to `ocrun` with programmatic submission: 2 frames completed successfully ([`notes/sandbox/26`](../sandbox/26-ocrun取代wrapper.md)).
+- Migrated to `ocrun` with programmatic submission: 2 frames completed successfully ([`notes/sandbox/26`](../sandbox/26-ocrun-wrapper.md)).
 - Interactive validation via Maya UI: resolved and patched `-cam [None]` bug; re-submission of 3 frames succeeded.
-- Re-tested with `ocrun` and version tag lookup via Maya UI: command lines and services resolved correctly. Fixed Arnold license failure behavior ([`02-render-nodes.md` Section 5](02-render-nodes.md#5-invoking-dcc-applications-ocrun), [`notes/sandbox/30`](../sandbox/30-Arnold授權與假成功.md)).
+- Re-tested with `ocrun` and version tag lookup via Maya UI: command lines and services resolved correctly. Fixed Arnold license failure behavior ([`02-render-nodes.md` Section 5](02-render-nodes.md#5-invoking-dcc-applications-ocrun), [`notes/sandbox/30`](../sandbox/30-arnold-licensing.md)).
 
-Reference: [`notes/sandbox/25`](../sandbox/25-Maya內投遞.md).
+Reference: [`notes/sandbox/25`](../sandbox/25-maya-submission.md).
 
 ---
 
@@ -306,7 +306,7 @@ Launching without arguments opens a blank dialog.
 - Standalone husk submission verified with existing USD files (Karma XPU).
 - Rez resolution verified via `OCRUN_REZ` in Environment fields.
 
-Reference: [`notes/sandbox/27`](../sandbox/27-Houdini內投遞.md).
+Reference: [`notes/sandbox/27`](../sandbox/27-houdini-submission.md).
 
 ### PDG (TOP Networks)
 
@@ -325,7 +325,7 @@ Installing the package above exposes the **`pdg_opencuescheduler`** node, config
 
 Verification status: Verified locally via hython for 300 work items (single job), downstream cooks, partial failures, killed frames, and cook cancellation across Houdini 21 and 22. Interactive UI cook verified across dependent nodes.
 **Cross-machine callback connectivity remains unverified.**
-Reference: [`notes/sandbox/34`](../sandbox/34-Houdini-PDG-scheduler設計.md).
+Reference: [`notes/sandbox/34`](../sandbox/34-houdini-pdg-scheduler.md).
 
 ---
 
@@ -374,7 +374,7 @@ ocrun nuke <version> Nuke<major.minor> -F #FRAMESPEC# [-X Write1,Write2] -x <scr
 - Interactive Nuke UI submission validated; unsaved script prompts verified.
 - Verified menu integration via `NUKE_PATH`.
 
-Reference: [`notes/sandbox/31`](../sandbox/31-Nuke內投遞.md).
+Reference: [`notes/sandbox/31`](../sandbox/31-nuke-submission.md).
 
 ---
 
@@ -384,12 +384,12 @@ Guidelines for TDs writing custom submission scripts or pipeline integrations:
 
 | Item | Best Practice | Reference |
 |---|---|---|
-| DCC Version Pinning | Use **Services** (e.g. `houdini2204`); avoid manual per-layer tags | [`sandbox/21`](../sandbox/21-Service與資源模型.md) |
-| Command Tokens | Pass command arguments as a **list**, never a raw string, to prevent backslash stripping on Windows | [`sandbox/17` Scenario 6](../sandbox/17-故障排查與常見疏失速查.md#場景-6dcc-算圖報找不到檔案反斜線路徑被吃掉) |
-| Paths Containing Spaces | Lists **do not protect spaces**; wrap scene files and output paths in explicit double quotes | [`sandbox/17` Scenario 24](../sandbox/17-故障排查與常見疏失速查.md#場景-24路徑含空白時-frame-失敗) |
+| DCC Version Pinning | Use **Services** (e.g. `houdini2204`); avoid manual per-layer tags | [`sandbox/21`](../sandbox/21-service-and-resource-model.md) |
+| Command Tokens | Pass command arguments as a **list**, never a raw string, to prevent backslash stripping on Windows | [`sandbox/17` Scenario 6](../sandbox/17-troubleshooting.md#scenario-6-dcc-render-fails-to-find-files-backslash-paths-stripped) |
+| Paths Containing Spaces | Lists **do not protect spaces**; wrap scene files and output paths in explicit double quotes | [`sandbox/17` Scenario 24](../sandbox/17-troubleshooting.md#scenario-24-frame-fails-when-path-contains-spaces) |
 | DCC Invocation | Always execute via `ocrun <product> <version> <executable>`; avoid local absolute paths | [`02-render-nodes.md` Section 5](02-render-nodes.md#5-invoking-dcc-applications-ocrun) |
-| Operating System | Set `os="Windows"` explicitly to govern dispatch targeting and log path resolution | [`sandbox/17` Scenario 21](../sandbox/17-故障排查與常見疏失速查.md#場景-21混合作業系統農場中job-成功但-log-找不到) |
-| Layer Name Length | Must contain at least 3 characters | [`sandbox/21`](../sandbox/21-Service與資源模型.md) |
+| Operating System | Set `os="Windows"` explicitly to govern dispatch targeting and log path resolution | [`sandbox/17` Scenario 21](../sandbox/17-troubleshooting.md#scenario-21-in-multi-os-farms-jobs-succeed-but-logs-cannot-be-found) |
+| Layer Name Length | Must contain at least 3 characters | [`sandbox/21`](../sandbox/21-service-and-resource-model.md) |
 | Scene File Integrity | Frames evaluate the **live scene file on disk at render time**, not a submission snapshot. Overwriting a scene during rendering affects subsequent frames. Save new versions before queuing | Design Decision (Below) |
 | Environment Variables | Workstation environments do not transfer to frames. Supply variables in the **Environment** field (`KEY=VALUE` per line; lines starting with `#` are skipped). Environment settings **override `dcc.toml` `[env]` defaults**. For Rez, populate `OCRUN_REZ` | [`02-render-nodes.md` Section 5](02-render-nodes.md#license-servers-configured-in-dcctoml) |
 
@@ -402,4 +402,4 @@ Submission tools point directly to the active scene file on disk without making 
 ### CueWeb Submission Constraints
 
 CueWeb supports web-based job submission but exhibits three distinct limitations: no tag selection, no OS selection, and a fixed 256 MB default memory limit. Use desktop utilities or pipeline scripts for production submissions.
-Reference: [`notes/sandbox/13`](../sandbox/13-CueWeb與RESTGateway.md).
+Reference: [`notes/sandbox/13`](../sandbox/13-cueweb-and-rest-gateway.md).

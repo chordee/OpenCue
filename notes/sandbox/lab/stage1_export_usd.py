@@ -1,9 +1,9 @@
-"""兩階段派工的第 1 階段：以 hython 建立場景並匯出 USD。
+"""Stage 1 of two-stage dispatch: build scene and export USD via hython.
 
-第 2 階段由 husk 直接算這個 USD，不需要再開 Houdini。
+Stage 2 renders the exported USD directly using husk, without opening Houdini.
 
-輸出路徑由 OPENCUE_USD_OUT 指定；frame 範圍由 OPENCUE_FRAME_START /
-OPENCUE_FRAME_END 指定（USD 會包含這段時間的動畫取樣）。
+Output path specified by OPENCUE_USD_OUT; frame range specified by OPENCUE_FRAME_START /
+OPENCUE_FRAME_END (USD will contain animation samples for this range).
 """
 import os
 import sys
@@ -39,7 +39,7 @@ stage = hou.node("/stage")
 
 sphere = stage.createNode("sphere")
 
-# 讓幾何隨 frame 移動，這樣每一格算出來的圖才會不同
+# Animate geometry over time so each rendered frame differs
 xform = stage.createNode("xform")
 xform.setFirstInput(sphere)
 xform.parm("primpattern").set("/sphere1")
@@ -47,7 +47,7 @@ try:
     xform.parm("ty").setExpression("sin($F * 60) * 1.5")
     xform.parm("ry").setExpression("$F * 30")
 except Exception as e:
-    print("xform 參數設定略過:", e)
+    print("xform parameter setting skipped:", e)
 
 light = stage.createNode("domelight")
 light.setFirstInput(xform)
@@ -64,13 +64,13 @@ rs.parm("camera").set(campath)
 rop = stage.createNode("usd_rop")
 rop.setFirstInput(rs)
 rop.parm("lopoutput").set(out_usd)
-# trange=1 表示輸出整段 frame 範圍，USD 內才會有動畫取樣
+# trange=1 exports full frame range so USD contains animation samples
 try:
     rop.parm("trange").set(1)
     rop.parm("f1").set(f1)
     rop.parm("f2").set(f2)
 except Exception as e:
-    print("frame range 設定略過:", e)
+    print("frame range setting skipped:", e)
 
 start = time.time()
 rop.render()

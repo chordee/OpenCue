@@ -1,15 +1,15 @@
 #!/usr/bin/env python
-"""把 DCC 算圖工作投到 OpenCue 農場（Houdini / Maya / Nuke）。
+"""Submit DCC render jobs to OpenCue farm (Houdini / Maya / Nuke).
 
-設計要點見 notes/sandbox/12-Houdini真實算圖.md：
+Key architectural design points from notes/sandbox/12-real-dcc-rendering.md:
 
-1. 指令以「串列」形式傳入，避免 shlex 吃掉 Windows 路徑的反斜線
-2. 以 ocrun <產品> <版本> <程式> 呼叫 DCC，安裝位置由各節點的 dcc.toml 決定
-   （notes/sandbox/26-ocrun取代wrapper.md）
-3. 用 layer tag 綁定 DCC 版本，Cuebot 只派給真的裝了該版本的節點
-4. frame 編號由 Cuebot 的 #IFRAME# token 或 RQD 注入的 CUE_IFRAME 傳遞
+1. Commands passed as lists, preventing shlex from stripping Windows backslashes.
+2. Invokes DCCs via ocrun <product> <version> <executable>, resolved dynamically by each node's dcc.toml
+   (notes/sandbox/26-ocrun-wrapper.md).
+3. Layer tags bind DCC versions so Cuebot only dispatches to nodes with that version installed.
+4. Frame numbers passed via Cuebot's #IFRAME# token or RQD-injected CUE_IFRAME.
 
-用法：
+Usage:
     python submit_dcc.py houdini --frames 1-4
     python submit_dcc.py maya    --frames 1-3
     python submit_dcc.py nuke    --frames 1-3
@@ -60,10 +60,10 @@ def main():
     args = ap.parse_args()
 
     preset = PRESETS[args.app]
-    # 【重要】只放版本 tag，不要加 general。
-    # Cuebot 的比對是 regex：host.str_tags ~* ('(?x)' || layer.str_tags || '\y')
-    # layer 的多個 tag 會以 " | " 串接，而 | 在 regex 裡是「或」——
-    # 加上 general 等於「任何有 general 的節點都符合」，版本綁定完全失效。
+    # [IMPORTANT] Specify version tag only; do not include general.
+    # Cuebot tag matching is regex-based: host.str_tags ~* ('(?x)' || layer.str_tags || '\y')
+    # Multiple layer tags are concatenated with " | " which acts as regex OR:
+    # adding general matches any node advertising general, bypassing version targeting.
     tags = [preset["tag"]]
     short_name = "%s_render_%s" % (args.app, preset["version"])
 
@@ -78,7 +78,7 @@ def main():
 
     layer = Shell(
         "%s_render" % args.app,
-        command=preset["command"],      # 串列，不是字串
+        command=preset["command"],      # List, not string
         range=args.frames,
         tags=tags,
         env=preset["env"],
@@ -86,7 +86,7 @@ def main():
     ol = outline.Outline(short_name, shot=args.shot, show=args.show)
     ol.add_layer(layer)
     outline.cuerun.launch(ol, pause=args.paused, use_pycuerun=False)
-    print("已送出")
+    print("Submitted")
     return 0
 
 

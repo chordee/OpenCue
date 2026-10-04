@@ -1,6 +1,6 @@
-"""以 hython cook 一個 TOP 節點並列出結果（34 篇）。
+"""Cook a TOP node via hython and print summary results (Note 34).
 
-用法：hython cook_pdg_node.py <hip> <TOP 節點路徑>
+Usage: hython cook_pdg_node.py <hip> <TOP node path>
 """
 import collections
 import sys

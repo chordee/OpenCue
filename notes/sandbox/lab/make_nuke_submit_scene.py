@@ -1,4 +1,4 @@
-"""建立 31 篇用的 Nuke 測試場景。用法：ocrun nuke 17.0v1 Nuke17.0 -t make_nuke_submit_scene.py"""
+"""Build Nuke test scene for Note 31. Usage: ocrun nuke 17.0v1 Nuke17.0 -t make_nuke_submit_scene.py"""
 import nuke
 
 OUT = "P:/projects/opencue_test/render/nuke_sub/"

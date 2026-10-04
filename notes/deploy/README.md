@@ -23,7 +23,7 @@ This directory covers **deployment procedures only**. The testing process, pitfa
 | Dedicated Render Node | [`02-render-nodes.md`](02-render-nodes.md) | [`node/`](node/) |
 | Artist Workstation | [`02-render-nodes.md`](02-render-nodes.md) + [`03-workstations.md`](03-workstations.md) | [`node/`](node/) + [`client/`](client/) |
 | Post-deployment Ops | [`04-operations.md`](04-operations.md) | — |
-| Troubleshooting | [`17-troubleshooting.md`](../sandbox/17-故障排查與常見疏失速查.md) | — |
+| Troubleshooting | [`17-troubleshooting.md`](../sandbox/17-troubleshooting.md) | — |
 
 Artist workstations hold a **dual role**: daytime client workstations, and evening/night render nodes. Both guides must be completed.
 
@@ -123,7 +123,7 @@ The following items cannot be fully verified within a single-host sandbox and re
 | End-to-end UNC path storage access | CueWeb unable to load logs if mount path diverges. | [`01`](01-server.md) |
 | Arnold / MtoA licensing | Unlicensed watermarks or false exits. | — |
 
-For full verification statuses, refer to [`19-verification-summary.md`](../sandbox/19-驗證狀態總表.md).
+For full verification statuses, refer to [`19-verification-summary.md`](../sandbox/19-verification-summary.md).
 
 ---
 

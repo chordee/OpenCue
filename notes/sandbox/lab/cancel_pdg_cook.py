@@ -1,6 +1,6 @@
-"""cook 一個 TOP 節點，等到有 work item 開始 cook 後取消（34 篇）。
+"""Cook a TOP node, wait until work items start cooking, then cancel (Note 34).
 
-用法：hython cancel_pdg_cook.py <hip> <TOP 節點路徑> [等待秒數，預設 40]
+Usage: hython cancel_pdg_cook.py <hip> <TOP node path> [wait seconds, default 40]
 """
 import collections
 import sys

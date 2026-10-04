@@ -1,4 +1,4 @@
-"""建立 27 篇用的 Houdini 測試場景。用法：ocrun houdini 22.0.429 hython make_houdini_submit_scene.py"""
+"""Build Houdini test scene for Note 27. Usage: ocrun houdini 22.0.429 hython make_houdini_submit_scene.py"""
 import hou
 OUT = "P:/projects/opencue_test/render/hou/"
 geo = hou.node("/obj").createNode("geo", "geo1")

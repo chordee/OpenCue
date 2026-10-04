@@ -13,7 +13,7 @@ cam.parmTuple("t").set((0, 0, 6))
 rs = stage.createNode("karmarendersettings")
 rs.setFirstInput(cam)
 
-# 解析度需先切換 res_mode 才可手動指定
+# Resolution requires switching res_mode first before manual assignment
 rm = rs.parm("res_mode")
 if rm:
     print("res_mode menu:", rm.menuItems())

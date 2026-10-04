@@ -1,92 +1,87 @@
-# OpenCue Sandbox 建置筆記
+# OpenCue Sandbox Research & Test Logs
 
-記錄在本機把 OpenCue sandbox 環境架起來的完整過程、踩到的坑、以及
-「之後要在正式 Linux 宿主 + Portainer 上架設」時需要改掉的地方。
+Detailed notes documenting the complete process of standing up an OpenCue sandbox environment locally, pitfalls encountered, and adaptations necessary for production deployment on Linux + Portainer.
 
-## 背景與目標
+## Context & Objectives
 
-- 本機是 Windows 11，但**最終的 Docker 宿主預期是 Linux**，入口可能掛 Portainer。
-- 因此測試刻意**全程在 WSL2 Ubuntu 內操作**，而不是 Windows 原生路徑。
-  理由：路徑、權限、bind mount 行為跟正式 Linux 宿主一致，筆記可直接搬過去；
-  若遷就 Windows，會養出一堆正式環境用不到的 workaround。
-- Repo 是 fork：`chordee/OpenCue`，工作分支 `studio/main`（原名 `demo/sandbox-test`），上線分支 `studio/release`（GitHub 上的預設分支）。
+- Local host is Windows 11, but the **target production Docker host is Linux**, fronted by Portainer.
+- Testing was intentionally **conducted entirely inside WSL2 Ubuntu** rather than native Windows paths.
+  Rationale: Paths, permissions, and bind-mount behaviors match the production Linux host; notes can be migrated directly without Windows-specific workarounds.
+- Repo fork: `chordee/OpenCue`, active working branch `studio/main` (originally `demo/sandbox-test`), production release branch `studio/release` (default branch on GitHub).
 
-## 本目錄與 `notes/deploy/` 的分工
+## Division of Responsibilities: `notes/sandbox/` vs. `notes/deploy/`
 
-| 目錄 | 內容 |
+| Directory | Scope |
 |---|---|
-| **[`notes/deploy/`](../deploy/README.md)** | **正式部署**：只寫怎麼做，設定檔都在那裡，現成的 GHCR image 也列在那裡 |
-| `notes/sandbox/`（本目錄） | **測試紀錄**：過程、踩過的坑、原始碼依據與實測數據 |
+| **[`notes/deploy/`](../deploy/README.md)** | **Production Deployment**: Step-by-step instructions, production configs, and pre-built GHCR image references. |
+| `notes/sandbox/` (This directory) | **Test Logs & Evidence**: Testing logs, pitfall retrospectives, source code analysis, and empirical benchmarks. |
 
-**要部署的話，從 [`notes/deploy/README.md`](../deploy/README.md) 開始。** 本目錄是那些做法的證據，
-遇到問題或想知道「為什麼要這樣做」時再回來查。
+**To deploy OpenCue, begin with [`notes/deploy/README.md`](../deploy/README.md).** This sandbox directory serves as technical evidence and architectural rationale; consult it when troubleshooting or seeking the reasoning behind operational decisions.
 
-## 筆記索引
+## Topic Index
 
-| 檔案 | 內容 |
+| File | Content Summary |
 |---|---|
-| [`00-環境與前置.md`](00-環境與前置.md) | 本機環境盤點、版本、必要目錄 |
-| [`01-平台差異與Portainer.md`](01-平台差異與Portainer.md) | 官方 compose 對 Linux 宿主 / Portainer 不友善之處 |
-| [`02-目標架構.md`](02-目標架構.md) | 依 IT 描述推導的正式環境架構與注意事項 |
-| [`03-容器說明.md`](03-容器說明.md) | stack 裡每個容器的角色、設定與正式環境注意事項 |
-| [`04-部署過程.md`](04-部署過程.md) | 實際啟動步驟、踩到的坑與結果 |
-| [`05-可回饋上游的問題.md`](05-可回饋上游的問題.md) | 本次發現的 OpenCue 專案本身問題與建議修法 |
-| [`06-資源用量實測.md`](06-資源用量實測.md) | 實測的 CPU/記憶體用量，用於判斷主機規格 |
-| [`07-Portainer部署實錄.md`](07-Portainer部署實錄.md) | 用 Portainer API 部署與驗證的完整流程 |
-| [`08-Windows節點實錄.md`](08-Windows節點實錄.md) | Windows 原生 RQD 的安裝、設定與五個坑 |
-| [`09-NIMBY與混合機隊.md`](09-NIMBY與混合機隊.md) | 工作站與專職算圖機的分工、CueNIMBY 時段排程實測 |
-| [`10-Windows用戶端工具.md`](10-Windows用戶端工具.md) | CueGUI / CueSubmit 在 Windows 的安裝與設定路徑 |
-| [`11-正式部署風險與待辦.md`](11-正式部署風險與待辦.md) | 規模化後才會遇到的問題：DNS、UNC、防火牆、初始化、EDR、備份 |
-| [`12-真實DCC算圖.md`](12-真實DCC算圖.md) | Houdini / Maya / Nuke 實際算圖、多版本共存與環境變數的坑 |
-| [`13-CueWeb與RESTGateway.md`](13-CueWeb與RESTGateway.md) | 網頁 UI 部署、JWT 驗證、跨平台 frame log 的解法 |
-| [`14-Registry流程.md`](14-Registry流程.md) | build → push → Portainer pull 完整驗證與正式環境要求 |
-| [`15-空間規劃.md`](15-空間規劃.md) | 各項目的實測用量、成長特性與清理策略 |
-| [`16-Portainer與SSH的分工.md`](16-Portainer與SSH的分工.md) | 哪些工作 Portainer 做得到、哪些需要宿主權限 |
-| [`17-故障排查與常見疏失速查.md`](17-故障排查與常見疏失速查.md) | **遇到問題先看這篇**：報錯現象 ➔ 疏失對準 ➔ 解法對照手冊 |
-| [`18-三種角色的準備清單.md`](18-三種角色的準備清單.md) | 依機器角色展開的準備清單（**已由 [`notes/deploy/`](../deploy/README.md) 取代**） |
-| [`19-驗證狀態總表.md`](19-驗證狀態總表.md) | **哪些驗過、哪些沒驗**。各篇的「尚未驗證」段落可能過時，以此為準 |
-| [`20-相依性與維運操作.md`](20-相依性與維運操作.md) | DEPEND 狀態、chain/diamond/fan-in 實測、常用維運指令 |
-| [`21-Service與資源模型.md`](21-Service與資源模型.md) | Layer / Username / Facility / Service / Dependency 的關係與用途 |
-| [`22-兩種部署路線.md`](22-兩種部署路線.md) | **同一份 stack 兩種部署法**：Portainer（image 走 registry）或 docker compose（在宿主 build）；初始化容器 |
-| [`23-Portainer的Git模式.md`](23-Portainer的Git模式.md) | stack 直接指向 GitHub、三種更新方式的實測（手動 / 輪詢 / webhook） |
-| [`24-派工行為與監控.md`](24-派工行為與監控.md) | 雙角色派工、鎖定時正在跑的 frame、500 frame、Prometheus / Grafana、Loki 評估 |
-| [`25-Maya內投遞.md`](25-Maya內投遞.md) | repo 外掛的限制（DCC 內建 Python 版本、指令格式）、兩段式投遞工具的實測 |
-| [`26-ocrun取代wrapper.md`](26-ocrun取代wrapper.md) | 以 Python 的 `ocrun` 取代每個 DCC 版本一支的 `.bat` wrapper，為加入 Linux 節點預作準備 |
-| [`27-Houdini內投遞.md`](27-Houdini內投遞.md) | 從 Houdini 投遞的兩段式工具：節點種類、模擬整段一個 task、實測 |
-| [`28-Maya結束時跳出錯誤回報.md`](28-Maya結束時跳出錯誤回報.md) | 每格 Maya 都跳出 Autodesk 錯誤回報：授權模組缺 `ALLUSERSPROFILE`，以 `[UseHostEnvVar]` 修正 |
-| [`29-frame的時區.md`](29-frame的時區.md) | RQD 把 frame 的 `TZ` 寫死為美西時間，以 `[UseHostEnvVar]` 修正 |
-| [`30-Arnold授權與假成功.md`](30-Arnold授權與假成功.md) | 農場上的 Arnold 拿不到授權卻顯示成功：授權變數與 `ocrun` 的失敗偵測 |
-| [`31-Nuke內投遞.md`](31-Nuke內投遞.md) | 從 Nuke 投遞的兩段式工具：CueSubmit Nuke 類型的問題、chunk 與 frame spec 實測 |
-| [`32-節點tag長度上限.md`](32-節點tag長度上限.md) | 節點 tag 總長度超過 128 字元就註冊不上：工作室的 flyway migration |
-| [`33-照文件從頭重建.md`](33-照文件從頭重建.md) | 完全照 `notes/deploy/` 從空的 DB 重建一次：卡住的地方、驗證結果 |
-| [`34-Houdini-PDG-scheduler設計.md`](34-Houdini-PDG-scheduler設計.md) | Houdini PDG 的 OpenCue scheduler：參考內建 scheduler、架構與決定、本機驗證（300 個 work item 一個 job） |
-| [`lab/`](lab/) | 測試用的腳本（投遞、算圖、磁碟機測試）與本機 sandbox 的環境變數紀錄 |
+| [`00-environment-and-prerequisites.md`](00-environment-and-prerequisites.md) | Local test environment inventory, component versions, and directory structures |
+| [`01-platform-differences-and-portainer.md`](01-platform-differences-and-portainer.md) | Upstream compose limitations on Linux Docker hosts and Portainer |
+| [`02-target-architecture.md`](02-target-architecture.md) | Target studio architecture, network topology, and end-to-end frame lifecycle diagram |
+| [`03-containers.md`](03-containers.md) | In-depth breakdown of each container role, configuration, and production considerations |
+| [`04-deployment-process.md`](04-deployment-process.md) | Step-by-step startup log, pitfall retrospectives, and resolution evidence |
+| [`05-upstream-issues.md`](05-upstream-issues.md) | Upstream OpenCue project bugs/omissions discovered and suggested patches |
+| [`06-resource-usage.md`](06-resource-usage.md) | Empirical CPU/memory resource consumption metrics for host sizing |
+| [`07-portainer-deployment-log.md`](07-portainer-deployment-log.md) | Full workflow for deploying and verifying stacks via Portainer API |
+| [`08-windows-node-log.md`](08-windows-node-log.md) | Native Windows RQD installation, configuration, and 5 critical pitfalls |
+| [`09-nimby-and-hybrid-fleet.md`](09-nimby-and-hybrid-fleet.md) | Workstation vs. dedicated node division, CueNIMBY schedule verification |
+| [`10-windows-client-tools.md`](10-windows-client-tools.md) | CueGUI / CueSubmit installation and config paths on Windows |
+| [`11-production-risks-and-todos.md`](11-production-risks-and-todos.md) | Production scalability considerations: DNS, UNC, firewalls, bootstrapping, backups |
+| [`12-real-dcc-rendering.md`](12-real-dcc-rendering.md) | Real Houdini / Maya / Nuke rendering, multi-version coexistence, environment pitfalls |
+| [`13-cueweb-and-rest-gateway.md`](13-cueweb-and-rest-gateway.md) | Web UI deployment, JWT authentication, and cross-platform log viewer workarounds |
+| [`14-registry-workflow.md`](14-registry-workflow.md) | Build -> push -> Portainer pull validation and private registry requirements |
+| [`15-storage-planning.md`](15-storage-planning.md) | Empirical disk consumption metrics, growth characteristics, and pruning strategies |
+| [`16-portainer-and-ssh-division.md`](16-portainer-and-ssh-division.md) | Division of capabilities between Portainer UI vs. host SSH root privileges |
+| [`17-troubleshooting.md`](17-troubleshooting.md) | **Primary Troubleshooting Index**: Symptoms -> Root causes -> Diagnostic manual |
+| [`18-role-checklists.md`](18-role-checklists.md) | Role-based preparation checklists (**Superseded by [`notes/deploy/`](../deploy/README.md)**) |
+| [`19-verification-summary.md`](19-verification-summary.md) | **Authoritative Verification Table**: Exhaustive status of verified vs. unverified items |
+| [`20-dependencies-and-operations.md`](20-dependencies-and-operations.md) | Job dependencies (chain / diamond / fan-in) and common administrative commands |
+| [`21-service-and-resource-model.md`](21-service-and-resource-model.md) | Relational mapping of Layer, Username, Facility, Service, and Dependency entities |
+| [`22-two-deployment-routes.md`](22-two-deployment-routes.md) | Single compose stack supporting both Portainer and native Docker Compose |
+| [`23-portainer-git-mode.md`](23-portainer-git-mode.md) | Git repository deployment mode in Portainer; polling, webhook, and manual updates |
+| [`24-dispatch-and-monitoring.md`](24-dispatch-and-monitoring.md) | Hybrid fleet dispatching, 500-frame stress tests, Prometheus/Grafana, and Loki analysis |
+| [`25-maya-submission.md`](25-maya-submission.md) | Upstream Maya plugin limitations and decoupled two-tier submission tool validation |
+| [`26-ocrun-wrapper.md`](26-ocrun-wrapper.md) | Cross-platform Python `ocrun` runner replacing per-version `.bat` wrappers |
+| [`27-houdini-submission.md`](27-houdini-submission.md) | Houdini two-tier submission tool: supported nodes, simulation chunking, husk mode |
+| [`28-maya-crash-reporting.md`](28-maya-crash-reporting.md) | Maya post-render crash reporter dialogs: resolving `ALLUSERSPROFILE` licensing omission |
+| [`29-frame-timezone.md`](29-frame-timezone.md) | Resolving RQD hardcoded `PST8PDT` frame timezones via `[UseHostEnvVar]` |
+| [`30-arnold-licensing.md`](30-arnold-licensing.md) | Arnold license checkout failures masquerading as false successes; `ocrun` error trapping |
+| [`31-nuke-submission.md`](31-nuke-submission.md) | Nuke two-tier submission tool: bypassing upstream limitations, chunk frame specs |
+| [`32-node-tag-limit.md`](32-node-tag-limit.md) | Resolving 128-character node tag registration crash via studio Flyway migration |
+| [`33-rebuild-from-scratch.md`](33-rebuild-from-scratch.md) | End-to-end clean room rebuild from `notes/deploy/` on a blank DB |
+| [`34-houdini-pdg-scheduler.md`](34-houdini-pdg-scheduler.md) | Custom Houdini PDG OpenCue scheduler architecture, design, and 300-work-item tests |
+| [`lab/`](lab/) | Testing scripts (submission, rendering, mount checks) and sandbox `.env` records |
 
-## 閱讀建議（依工作角色導讀）
+## Suggested Reading Order by Role
 
-- **想快速掌握架構與運作原理**：
-  先讀 [`02-目標架構.md`](02-目標架構.md)（含 Frame 端到端生命週期圖解）與 [`03-容器說明.md`](03-容器說明.md)。
-- **實際要動手部署**：
-  以 **[`notes/deploy/README.md`](../deploy/README.md)** 為唯一入口，它依機器角色分篇，並附部署順序。
-  背景細節見 [`07-Portainer部署實錄.md`](07-Portainer部署實錄.md)、[`08-Windows節點實錄.md`](08-Windows節點實錄.md)、[`14-Registry流程.md`](14-Registry流程.md)。
-- **負責藝術家工作站與 DCC Pipeline**：
-  詳讀 [`09-NIMBY與混合機隊.md`](09-NIMBY與混合機隊.md)、[`10-Windows用戶端工具.md`](10-Windows用戶端工具.md)、[`12-真實DCC算圖.md`](12-真實DCC算圖.md)（Houdini/Maya/Nuke 包裝實務）。
-- **IT 網管、資安與維運規劃**：
-  詳讀 [`11-正式部署風險與待辦.md`](11-正式部署風險與待辦.md)、[`15-空間規劃.md`](15-空間規劃.md)、[`16-Portainer與SSH的分工.md`](16-Portainer與SSH的分工.md)。
-- **上線除錯與突發狀況**：
-  直接翻閱 **[`17-故障排查與常見疏失速查.md`](17-故障排查與常見疏失速查.md)**，依畫面報錯快速對準可能疏失點。
+- **Architecture & Fundamentals**:
+  Read [`02-target-architecture.md`](02-target-architecture.md) (with Frame lifecycle diagrams) and [`03-containers.md`](03-containers.md).
+- **Production Deployment Engineers**:
+  Follow **[`notes/deploy/README.md`](../deploy/README.md)** as the primary guide. Consult [`07-portainer-deployment-log.md`](07-portainer-deployment-log.md), [`08-windows-node-log.md`](08-windows-node-log.md), and [`14-registry-workflow.md`](14-registry-workflow.md) for background evidence.
+- **Pipeline TDs & DCC Engineers**:
+  Read [`09-nimby-and-hybrid-fleet.md`](09-nimby-and-hybrid-fleet.md), [`10-windows-client-tools.md`](10-windows-client-tools.md), [`12-real-dcc-rendering.md`](12-real-dcc-rendering.md), [`25-maya-submission.md`](25-maya-submission.md), [`27-houdini-submission.md`](27-houdini-submission.md), [`31-nuke-submission.md`](31-nuke-submission.md), and [`34-houdini-pdg-scheduler.md`](34-houdini-pdg-scheduler.md).
+- **IT Infrastructure, Security & System Admins**:
+  Read [`11-production-risks-and-todos.md`](11-production-risks-and-todos.md), [`15-storage-planning.md`](15-storage-planning.md), and [`16-portainer-and-ssh-division.md`](16-portainer-and-ssh-division.md).
+- **Troubleshooting In-Flight Incidents**:
+  Consult **[`17-troubleshooting.md`](17-troubleshooting.md)** directly to map error keywords to root causes and fixes.
 
-## 名詞對照
+## Glossary of Terms
 
-| 元件 | 角色 |
+| Component | Role |
 |---|---|
-| Cuebot | 排程器，農場大腦，對外開 gRPC 8443 |
-| RQD | 跑在 render node 上的 daemon，實際執行 frame |
-| Flyway | DB schema migration 工具，跑完就結束 |
-| PostgreSQL | 所有 job / frame / host 狀態的儲存 |
-| REST Gateway | 把 gRPC 包成 HTTP，給 CueWeb 用 |
-| CueWeb | 網頁版監控 UI |
-| CueGUI | 桌面版監控 UI（Cuetopia / CueCommander） |
-| CueSubmit | 投 job 的桌面工具 |
-| CueNIMBY | 藝術家工作站的系統列鎖定與排程工具 |
-
+| Cuebot | Core scheduler and brain of the render farm; exposes gRPC on port 8443 |
+| RQD | Render Queue Daemon running on render nodes; executes frame commands |
+| Flyway | Database schema migration utility; runs to completion on startup |
+| PostgreSQL | Central relational database storing jobs, frames, layers, and host states |
+| REST Gateway | Bridges gRPC into HTTP/JSON for CueWeb |
+| CueWeb | Web-based monitoring and management portal |
+| CueGUI | Desktop monitoring client (Cuetopia / CueCommander) |
+| CueSubmit | Desktop and in-DCC job submission interface |
+| CueNIMBY | Artist workstation tray utility managing availability schedules |

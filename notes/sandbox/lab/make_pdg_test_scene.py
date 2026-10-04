@@ -1,14 +1,14 @@
-"""建立 34 篇用的 PDG 測試場景。
+"""Build PDG test scene for Note 34.
 
-用法：hython make_pdg_test_scene.py [work item 數量，預設 300]
+Usage: hython make_pdg_test_scene.py [work item count, default 300]
 
-/obj/topnet1：
-    gen      Generic Generator，N 個 work item
-    work     Python Script（外部程序，Hython）：寫一個小檔案、設定屬性 square、睡 2 秒（有 slow.<index> 標記檔時 90 秒）；
-             pdg_out 裡有 fail.<index> 標記檔時以 exit 1 結束
-    collect  Python Script（外部程序，PDG Python）：讀上游的輸出檔與屬性，寫出彙整
-    gen2 → work2  另一條分支（3 個 work item），both 以 Merge 接上 work 與 work2
-    opencue  OpenCue scheduler（topnet 的預設 scheduler）
+/obj/topnet1:
+    gen      Generic Generator, N work items
+    work     Python Script (out-of-process, Hython): writes small file, sets square attrib, sleeps 2s (90s if slow.<index> marker exists);
+             exits with code 1 if fail.<index> marker exists in pdg_out
+    collect  Python Script (out-of-process, PDG Python): reads upstream output and attribs, writes summary
+    gen2 -> work2  Secondary branch (3 work items), merged via Merge node with work and work2
+    opencue  OpenCue scheduler (default scheduler for topnet)
 """
 import sys
 

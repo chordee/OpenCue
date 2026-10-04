@@ -1,16 +1,16 @@
 #!/usr/bin/env python
-"""Houdini 兩階段派工：hython 產 USD -> husk 算圖。
+"""Houdini two-stage dispatch: hython exports USD -> husk renders images.
 
-這是 Houdini 大場景的實務做法，也是 chain 相依在真實 pipeline 上的應用：
+Standard production workflow for large Houdini scenes and live pipeline dependency chaining:
 
-    階段 1  hython  建立場景並匯出 USD      （1 個 frame）
-       |    depend_all（LayerOnLayer）
+    Stage 1  hython  Builds scene and exports USD       (1 frame)
+       |     depend_all (LayerOnLayer)
        v
-    階段 2  husk    直接算那個 USD          （N 個 frame，可平行）
+    Stage 2  husk    Renders exported USD directly      (N frames, parallel)
 
-husk 不需要開啟完整的 Houdini session，啟動比 hython 快。
+husk avoids initializing full Houdini sessions, launching much faster than hython.
 
-用法：
+Usage:
     python submit_houdini_twostage.py --frames 1-3
 """
 import argparse
@@ -41,7 +41,7 @@ def main():
     name = "houdini_twostage_%d" % int(time.time())
     ol = outline.Outline(name, shot=args.shot, show=args.show)
 
-    # 階段 1：匯出 USD。只有一個 frame。
+    # Stage 1: Export USD. Exactly one frame.
     stage1 = Shell(
         "export_usd",
         command=["ocrun", "houdini", VERSION, "hython",
@@ -55,7 +55,7 @@ def main():
         },
     )
 
-    # 階段 2：husk 算圖。frame 可平行。
+    # Stage 2: husk rendering. Frames run in parallel.
     stage2 = Shell(
         "husk_render",
         command=["ocrun", "houdini", VERSION, "husk", "--make-output-path",
@@ -64,24 +64,24 @@ def main():
         tags=[VERSION_TAG],
     )
 
-    # 【重點】整層相依：階段 2 的所有 frame 都要等階段 1 全部完成
+    # [KEY] Layer-level dependency: all frames in Stage 2 wait for Stage 1 to complete
     stage2.depend_all(stage1)
 
     ol.add_layer(stage1)
     ol.add_layer(stage2)
 
     print("job     :", name)
-    print("階段 1  :", stage1.get_arg("command"), "range=1-1")
-    print("階段 2  :", stage2.get_arg("command"), "range=%s" % args.frames)
-    print("相依    : husk_render depend_all export_usd")
+    print("Stage 1 :", stage1.get_arg("command"), "range=1-1")
+    print("Stage 2 :", stage2.get_arg("command"), "range=%s" % args.frames)
+    print("Dependency : husk_render depend_all export_usd")
 
     if args.dry_run:
         print("(dry run)")
         return 0
 
-    # 先暫停送出，確保相依接線完成後才開始派工（見 notes/sandbox/20）
+    # Submit in paused state to ensure dependency wiring completes before dispatch starts (see notes/sandbox/20-dependencies-and-operations.md)
     outline.cuerun.launch(ol, pause=True, use_pycuerun=False)
-    print("已送出（暫停狀態），請 resume 後開始執行")
+    print("Submitted (paused state); resume to begin execution")
     return 0
 
 

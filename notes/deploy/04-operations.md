@@ -54,7 +54,7 @@ Container image versions are governed by environment variables rather than the Y
 - **Re-running the workflow without new commits** generates an identical tag and overwrites the existing image. Every distinct image release requires a distinct commit SHA.
 - After releasing new tags, update default references in [`README.md`](README.md) and [`server/env.example`](server/env.example).
 
-Reference: [`notes/sandbox/22` Section 8](../sandbox/22-兩種部署路線.md#八把-image-放到-ghcr取代自建-registry).
+Reference: [`notes/sandbox/22` Section 8](../sandbox/22-two-deployment-routes.md#8-publishing-images-to-github-container-registry-ghcr).
 
 ### 1.2 Pre-upgrade: Check DB Migrations and Create Backup
 
@@ -83,7 +83,7 @@ Git Repository stacks operate under identical rules: **git pushes never alter im
 - Existing containers continue running while new images download; service disruption is limited strictly to container recreation (~30 seconds).
 - Docker pulls only modified layers. However, when rebuilding across distinct commits, cuebot and cueweb application layers typically diverge, requiring full downloads (~1 hour depending on studio bandwidth). Portainer displaying "In progress" is normal; if network interruptions occur, re-clicking resumes partially downloaded layers safely.
 
-Reference: [`notes/sandbox/14`](../sandbox/14-Registry流程.md).
+Reference: [`notes/sandbox/14`](../sandbox/14-registry-workflow.md).
 
 ### 1.4 Rollbacks
 
@@ -91,7 +91,7 @@ Revert image tags in Portainer environment variables -> Update stack. Rolling ba
 
 **Exception**: If an upgrade applied new database migrations, assess schema backwards compatibility before reverting Cuebot, restoring the pre-upgrade database backup if necessary.
 
-**The Flyway image must never revert to versions lacking studio-specific migrations.** Once `R__Studio_widen_host_tags.sql` has applied to the DB, Flyway images missing this script fail validation on boot (`Detected applied migration not resolved locally`, exit code 1). The studio Flyway image includes this patch starting with build `1.34.4-1acac546` (Reference: [`notes/sandbox/32`](../sandbox/32-節點tag長度上限.md)).
+**The Flyway image must never revert to versions lacking studio-specific migrations.** Once `R__Studio_widen_host_tags.sql` has applied to the DB, Flyway images missing this script fail validation on boot (`Detected applied migration not resolved locally`, exit code 1). The studio Flyway image includes this patch starting with build `1.34.4-1acac546` (Reference: [`notes/sandbox/32`](../sandbox/32-node-tag-limit.md)).
 
 ---
 
@@ -127,7 +127,7 @@ docker exec opencue-db psql -U cuebot -d cuebot -c \
 
 Backups must be archived onto **physically separate storage hosts**. Cron backups require host shell access; under Portainer-only setups, deploy a containerized backup sidecar.
 
-Reference: [`notes/sandbox/11` Section 6](../sandbox/11-正式部署風險與待辦.md#6-postgresql-的資料保留與備份), [`notes/sandbox/16`](../sandbox/16-Portainer與SSH的分工.md).
+Reference: [`notes/sandbox/11` Section 6](../sandbox/11-production-risks-and-todos.md#6-postgresql-data-retention-and-backups), [`notes/sandbox/16`](../sandbox/16-portainer-and-ssh-division.md).
 
 ---
 
@@ -151,7 +151,7 @@ WHERE int_ts_stopped > 0
 
 **Condition `int_ts_stopped > 0` is strictly mandatory.** Active and in-flight jobs store `int_ts_stopped = 0`. Because `0 < (now - 90 days)` always evaluates to true, omitting this check **accidentally deletes historical logging for active in-progress jobs**.
 
-Reference: [`notes/sandbox/11` Section 6](../sandbox/11-正式部署風險與待辦.md#6-postgresql-的資料保留與備份), [`notes/sandbox/17` Scenario 12](../sandbox/17-故障排查與常見疏失速查.md#場景-12資料庫手動清理時活躍或進行中的任務歷史遭誤刪).
+Reference: [`notes/sandbox/11` Section 6](../sandbox/11-production-risks-and-todos.md#6-postgresql-data-retention-and-backups), [`notes/sandbox/17` Scenario 12](../sandbox/17-troubleshooting.md#scenario-12-manual-database-purge-accidentally-deletes-active-or-running-job-history).
 
 ---
 
@@ -160,7 +160,7 @@ Reference: [`notes/sandbox/11` Section 6](../sandbox/11-正式部署風險與待
 Render nodes stream frame logs into network storage (`CUE_FRAME_LOG_DIR`). OpenCue does not manage filesystem log lifecycles. Ensure IT implements a scheduled retention cleanup policy on the storage server (e.g. deleting files older than 60 days).
 
 Capacity estimation: Sandbox testing observed ~6.6 KB average per frame log, though verbose DCC render outputs can scale higher. Observe real-world capacity growth across the initial operational month.
-Reference: [`notes/sandbox/15`](../sandbox/15-空間規劃.md).
+Reference: [`notes/sandbox/15`](../sandbox/15-storage-planning.md).
 
 ---
 
@@ -181,7 +181,7 @@ Reference: [`notes/sandbox/15`](../sandbox/15-空間規劃.md).
 **To clear completed jobs from UI queues, use `cueman -term`**. `cueadmin -kill` terminates running frames only, leaving the job record visible in the queue.
 
 OpenCue classifies failed frames as **DEAD** (not FAILED). When an upstream frame is DEAD, downstream tasks block permanently in **DEPEND** until the upstream task is resolved.
-Reference: [`notes/sandbox/20`](../sandbox/20-相依性與維運操作.md).
+Reference: [`notes/sandbox/20`](../sandbox/20-dependencies-and-operations.md).
 
 ### Render Nodes
 
@@ -221,7 +221,7 @@ Cancelled frames return to the waiting queue and re-render on another available 
   show.setActive(False)
   ```
 
-Reference: [`notes/sandbox/20`](../sandbox/20-相依性與維運操作.md).
+Reference: [`notes/sandbox/20`](../sandbox/20-dependencies-and-operations.md).
 
 ### Services
 
@@ -271,13 +271,13 @@ Deleting images requires two prerequisites (otherwise the registry returns HTTP 
 2. Manifest deletion requests must supply Accept header `application/vnd.oci.image.index.v1+json` (as `docker buildx` pushes OCI manifests).
 
 After deleting manifests, execute `garbage-collect` inside the registry container to physically reclaim storage space.
-Reference: [`notes/sandbox/14`](../sandbox/14-Registry流程.md).
+Reference: [`notes/sandbox/14`](../sandbox/14-registry-workflow.md).
 
 ---
 
 ## 7. Troubleshooting Quick Reference
 
-Consult the diagnostic index in [`17-troubleshooting.md`](../sandbox/17-故障排查與常見疏失速查.md).
+Consult the diagnostic index in [`17-troubleshooting.md`](../sandbox/17-troubleshooting.md).
 Three most common zero-error silent stalls:
 
 | Symptom | Root Cause |

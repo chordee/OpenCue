@@ -35,7 +35,7 @@ All files under [`node/`](node/) are strictly pure ASCII. **Do not introduce non
 
 The sandbox test machine happened to have "Beta: Use Unicode UTF-8 for worldwide language support" enabled (ACP = 65001), allowing UTF-8 commented configurations to load; **standard Chinese Windows machines fail immediately** (confirmed empirically via cp950 decoding tests).
 
-Reference: [`notes/sandbox/09` Pitfall #13](../sandbox/09-NIMBY與混合機隊.md#坑-13bat-檔必須是純-ascii), [`notes/sandbox/17` Scenario 23](../sandbox/17-故障排查與常見疏失速查.md#場景-23rqd-一啟動就崩潰報-unicodedecodeerror), [`notes/sandbox/05` Issue #18](../sandbox/05-可回饋上游的問題.md#18-python-rqd-讀取-rqdconf-時沒有指定編碼).
+Reference: [`notes/sandbox/09` Pitfall #13](../sandbox/09-nimby-and-hybrid-fleet.md#pitfall-13-batch-files-must-be-pure-ascii), [`notes/sandbox/17` Scenario 23](../sandbox/17-troubleshooting.md#scenario-23-rqd-crashes-immediately-on-launch-with-unicodedecodeerror), [`notes/sandbox/05` Issue #18](../sandbox/05-upstream-issues.md#18-python-rqd-reads-rqdconf-without-specifying-encoding).
 
 ---
 
@@ -70,7 +70,7 @@ cd ..\..
 | `wmi`, `pywin32` | RQD **crashes on launch** (`No module named 'wmi'`); the upstream `rqd` package omits these dependencies. |
 | `winps` | RQD runs, but **memory usage reports 0 permanently** with zero warning diagnostics. |
 
-Reference: [`notes/sandbox/08`](../sandbox/08-Windows節點實錄.md).
+Reference: [`notes/sandbox/08`](../sandbox/08-windows-node-log.md).
 
 ### 3.3 Deploy Files
 
@@ -98,7 +98,7 @@ The template defaults to **Dedicated Render Node**. Three fields must be customi
 | `RQD_TAGS` | Available dispatch tags on this node; **the first tag determines allocation assignment** |
 
 **Why `OVERRIDE_HOSTNAME` must be a single-token short name**: Cuebot strips hostnames to their first dot-delimited token before making gRPC callbacks on port 8444. This short name must be resolvable from inside the Cuebot Docker container.
-Reference: [`notes/sandbox/08`](../sandbox/08-Windows節點實錄.md), [`notes/sandbox/04` Pitfall #3](../sandbox/04-部署過程.md#坑-3rqd-回報-ipv6-位址cuebot-無法回連).
+Reference: [`notes/sandbox/08`](../sandbox/08-windows-node-log.md), [`notes/sandbox/04` Pitfall #3](../sandbox/04-deployment-process.md#pitfall-3-rqd-reports-ipv6-address-cuebot-fails-to-connect-back).
 
 ### Facility Setting
 
@@ -109,7 +109,7 @@ DEFAULT_FACILITY = local
 RQD's built-in default facility is `cloud`, whereas client-submitted jobs default to `local`. If facilities mismatch, the node **will never receive jobs, accompanied by zero error diagnostics**.
 
 Verified in practice on Windows RQD: with this setting, hosts register under `local.*`; omitting it places them into `cloud.general`.
-Reference: [`notes/sandbox/17` Scenario 20](../sandbox/17-故障排查與常見疏失速查.md#場景-20新節點加入後永遠收不到工作).
+Reference: [`notes/sandbox/17` Scenario 20](../sandbox/17-troubleshooting.md#scenario-20-newly-joined-node-never-receives-work).
 
 ### Allocation Determined by the First Tag
 
@@ -154,7 +154,7 @@ TZ
 | `TZ` | RQD hardcodes child frame timezones to `PST8PDT`. Local timestamps in frames lag Taiwan time by 15 hours; render output folders or date-stamped files inadvertently reflect the previous calendar day. Adding `TZ` here inherits host time; on Windows systems without `TZ`, the frame receives an empty value and correctly defaults to Windows local timezone settings. |
 
 Do not add `USERPROFILE` or `LOCALAPPDATA`: child frames would inadvertently inherit logged-in artist personal preferences, scripts, and plugin caches.
-Reference: [`notes/sandbox/28`](../sandbox/28-Maya結束時跳出錯誤回報.md), [`notes/sandbox/29`](../sandbox/29-frame的時區.md).
+Reference: [`notes/sandbox/28`](../sandbox/28-maya-crash-reporting.md), [`notes/sandbox/29`](../sandbox/29-frame-timezone.md).
 
 ### Precedence of Frame Environment Variables
 
@@ -206,7 +206,7 @@ ocrun nuke 17.0v1 Nuke17.0 -t P:/proj/render.py
 - `rqd.conf` configures `RQD_USE_PATH_ENV_VAR = 1` so child frames inherit RQD's `PATH`.
 
 When killing frames, RQD issues `taskkill /T`, cleanly terminating the entire child process tree including DCC processes.
-Reference: [`notes/sandbox/26`](../sandbox/26-ocrun取代wrapper.md).
+Reference: [`notes/sandbox/26`](../sandbox/26-ocrun-wrapper.md).
 
 ### License Servers Configured in `dcc.toml`
 
@@ -222,7 +222,7 @@ solidangle_LICENSE = '5053@license-server.studio.local'
 **Arnold strictly requires `solidangle_LICENSE`** (verified). If missing, Arnold halts each frame with a `license checkout error`. Interactive desktop Maya sessions succeed because the desktop user has this variable set, but RQD child processes do not inherit it.
 
 Furthermore, when Arnold aborts due to missing licenses, `Render.exe` still returns exit code 0, causing OpenCue to falsely record frames as `SUCCEEDED` despite missing render outputs. `ocrun` intercepts and checks Maya output streams to trap these false successes; see below.
-Reference: [`notes/sandbox/30`](../sandbox/30-Arnold授權與假成功.md).
+Reference: [`notes/sandbox/30`](../sandbox/30-arnold-licensing.md).
 
 ### Trapping False-Success Frames
 
@@ -241,12 +241,12 @@ When Maya crashes, Autodesk's error reporting modal (`cer_dialog.exe`) launches 
 This occurs even after successful renders if `ALLUSERSPROFILE` is omitted, due to licensing module teardown faults. Resolve this via `[UseHostEnvVar]` in `rqd.conf` (Section 4).
 
 `ocrun` injects `MAYA_DISABLE_CER=1` when executing Maya, but this suppresses only Maya's core crash dialog; licensing modules run an independent crash reporter unaffected by this flag.
-Reference: [`notes/sandbox/28`](../sandbox/28-Maya結束時跳出錯誤回報.md), [`notes/sandbox/25` Section 5](../sandbox/25-Maya內投遞.md#五人工測試中發現的問題).
+Reference: [`notes/sandbox/28`](../sandbox/28-maya-crash-reporting.md), [`notes/sandbox/25` Section 5](../sandbox/25-maya-submission.md#5-issues-identified-during-manual-testing).
 
 ### Temp Directories
 
 RQD passes `TMP` but omits `TEMP`. Nuke falls back to `C:\temp` if `TEMP` is missing, failing renders. `ocrun` automatically synthesizes `TEMP` matching `TMP`, and explicitly injects `NUKE_DISK_CACHE` into `TEMP\nuke`.
-Reference: [`notes/sandbox/17` Scenario 7](../sandbox/17-故障排查與常見疏失速查.md#場景-7nuke-算圖全面失敗報-unable-to-create-disk-cache).
+Reference: [`notes/sandbox/17` Scenario 7](../sandbox/17-troubleshooting.md#scenario-7-nuke-render-fails-with-unable-to-create-disk-cache).
 
 ### Executing via Rez (`OCRUN_REZ`)
 
@@ -299,11 +299,11 @@ RQD_TAGS = desktop general houdini22 houdini_22_0_429 maya2027 maya_2027 nuke17 
 Cuebot concatenates all node tags (`RQD_TAGS`, `desktop`, `windows`, `rqdv-*`, hostname) into space-separated string `host.str_tags` in PostgreSQL. **Upstream OpenCue limits this field to 128 characters**; typical workstation tag lists easily reach 129 characters. When exceeded, nodes **silently fail to register**: RQD logs no errors, while Cuebot logs `value too long for type character varying(128)`.
 
 The studio Flyway image includes an automatic migration ([`server/migrations/R__Studio_widen_host_tags.sql`](server/migrations/R__Studio_widen_host_tags.sql)) widening this limit to 4000 characters. **Always use the studio-provided Flyway image** (pre-configured in `server/env.example`).
-Reference: [`notes/sandbox/32`](../sandbox/32-節點tag長度上限.md).
+Reference: [`notes/sandbox/32`](../sandbox/32-node-tag-limit.md).
 
 - **Cuebot tag matching follows regex OR semantics**: If a layer requests multiple tags separated by `|`, matching any single tag permits dispatch. **Do not combine `general` with version tags in layers or services**, or jobs will dispatch to nodes lacking the target version.
 - In production, **bind versions using Services** (bootstrapped via `OPENCUE_INIT_SERVICES`), rather than manual per-layer tags.
-Reference: [`notes/sandbox/12`](../sandbox/12-真實DCC算圖.md), [`notes/sandbox/21`](../sandbox/21-Service與資源模型.md), [`notes/sandbox/17` Scenario 19](../sandbox/17-故障排查與常見疏失速查.md#場景-19job-被派到沒有該-dcc-版本的節點).
+Reference: [`notes/sandbox/12`](../sandbox/12-real-dcc-rendering.md), [`notes/sandbox/21`](../sandbox/21-service-and-resource-model.md), [`notes/sandbox/17` Scenario 19](../sandbox/17-troubleshooting.md#scenario-19-job-dispatches-to-node-lacking-required-dcc-version).
 
 ---
 
@@ -322,7 +322,7 @@ Verify `NODE_ROLE` for the target machine:
 | `set NODE_ROLE=workstation` | Artist workstation: Launches CueNIMBY |
 | `set NODE_ROLE=render` | Dedicated render node: CueNIMBY disabled |
 
-Reference: [`notes/sandbox/08`](../sandbox/08-Windows節點實錄.md), [`notes/sandbox/09`](../sandbox/09-NIMBY與混合機隊.md), [`notes/sandbox/17` Scenarios 11, 13, 14](../sandbox/17-故障排查與常見疏失速查.md).
+Reference: [`notes/sandbox/08`](../sandbox/08-windows-node-log.md), [`notes/sandbox/09`](../sandbox/09-nimby-and-hybrid-fleet.md), [`notes/sandbox/17` Scenarios 11, 13, 14](../sandbox/17-troubleshooting.md).
 
 ---
 
@@ -360,7 +360,7 @@ Before deploying dedicated render nodes as services, execute a test job reading 
 - Or deploy persistent drive mappings for the service account via GPO.
 - Or configure the node with auto-logon and launch RQD on login, identical to workstations.
 
-Reference: [`notes/sandbox/11` Section 2](../sandbox/11-正式部署風險與待辦.md#2-網路磁碟機代號可用但有一個例外).
+Reference: [`notes/sandbox/11` Section 2](../sandbox/11-production-risks-and-todos.md#2-network-drive-letters-are-supported-with-one-exception).
 
 ---
 
@@ -402,7 +402,7 @@ Execute every check on the first pilot render node:
    - Maya frames exit without popping up the Autodesk Error Report dialog.
    - Arnold frames **physically generate image files**, and logs contain no `license checkout error` warnings.
 
-If any check fails, consult [`17-troubleshooting.md`](../sandbox/17-故障排查與常見疏失速查.md).
+If any check fails, consult [`17-troubleshooting.md`](../sandbox/17-troubleshooting.md).
 
 Once verified on the pilot machine, replicate to remaining nodes, customizing only:
 - `OVERRIDE_HOSTNAME` and `RQD_TAGS` in `rqd.conf`

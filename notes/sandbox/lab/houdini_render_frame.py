@@ -1,17 +1,17 @@
-"""OpenCue 農場測試用的 Houdini 算圖腳本。
+"""Houdini render script for OpenCue farm testing.
 
-以 hython 執行，每次算一個 frame。frame 編號來自 RQD 注入的環境變數
-CUE_IFRAME，所以不需要在 job 指令裡做字串代換。
+Executed via hython, rendering one frame per task. Frame number is provided
+by RQD injected environment variable CUE_IFRAME, eliminating the need for command string token replacement.
 
-輸出目錄由 OPENCUE_RENDER_OUT 指定，預設 P:/projects/opencue_test/render。
-正式環境應指向共享儲存的 UNC 路徑。
+Output directory specified by OPENCUE_RENDER_OUT, defaulting to P:/projects/opencue_test/render.
+Production setups should point to shared storage UNC paths.
 
-算圖器由 OPENCUE_RENDERER 選擇：
-    karma  (預設) 真正的 path tracer，行程內執行
-    opengl        視埠算圖，最快，適合做連線測試
+Renderer selected via OPENCUE_RENDERER:
+    karma  (default) Path tracer, executes in-process
+    opengl          Viewport render, fastest, ideal for connectivity testing
 
-注意：Mantra (ifd ROP) 需要獨立的 render 授權，本機測試環境沒有，
-      因此不提供該選項。
+Note: Mantra (ifd ROP) requires a standalone render license, unavailable in local test environments,
+      and is therefore omitted.
 """
 import os
 import sys
@@ -49,7 +49,7 @@ hou.setFrame(frame)
 
 obj = hou.node("/obj")
 
-# 會隨 frame 變化的幾何，讓每張圖不一樣
+# Animate geometry over frames so each rendered frame differs
 geo = obj.createNode("geo", "render_geo")
 torus = geo.createNode("torus")
 torus.parm("rows").set(40)
