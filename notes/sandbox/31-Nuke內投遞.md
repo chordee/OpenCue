@@ -1,6 +1,6 @@
 # 31 — 從 Nuke 直接投遞
 
-正式做法整理在 [`notes/deploy/03-工作站.md` 第八節](../deploy/03-工作站.md#八從-nuke-直接投遞)，本篇是設計與實測紀錄。
+正式做法整理在 [`notes/deploy/03-workstations.md` 第八節](../deploy/03-workstations.md#八從-nuke-直接投遞)，本篇是設計與實測紀錄。
 
 環境：Nuke 17.0v1（Python 3.11.11），OpenCue venv（Python 3.11.9），2026-09-25。
 

@@ -1,16 +1,16 @@
-"""部署後初始化：確保 show、subscription、service 存在。可重複執行。
+"""Post-deployment initialization: ensures shows, subscriptions, and services exist. Idempotent.
 
-全部由環境變數設定，未設定的項目直接略過：
+All configured via environment variables; unconfigured items are skipped:
 
   CUEBOT_HOSTS           cuebot:8443
-  OPENCUE_INIT_SHOWS     逗號分隔的 show 名稱，例如 projA,projB
-  OPENCUE_INIT_ALLOCS    新 show 要訂閱的 allocation，預設 local.general,local.desktop,cloud.general
-  OPENCUE_INIT_SUB_CORES 每個 subscription 的 size 與 burst（核心數），預設 1000
-  OPENCUE_INIT_SERVICES  JSON 陣列，例如
+  OPENCUE_INIT_SHOWS     Comma-separated show names, e.g. projA,projB
+  OPENCUE_INIT_ALLOCS    Allocations subscribed to by new shows, default local.general,local.desktop,cloud.general
+  OPENCUE_INIT_SUB_CORES Size and burst cores for each subscription, default 1000
+  OPENCUE_INIT_SERVICES  JSON array, e.g.
                          [{"name":"houdini2204","tags":["houdini_22_0_429"],
                            "min_cores":1,"min_memory_gb":4}]
 
-已存在的 show / subscription / service 不會被修改，避免蓋掉在介面上做的調整。
+Pre-existing shows, subscriptions, and services are not modified to avoid overwriting UI adjustments.
 """
 
 import json
@@ -22,7 +22,7 @@ import opencue
 from opencue.exception import EntityNotFoundException
 from opencue_proto import service_pb2
 
-GB = 1024 * 1024  # OpenCue 的記憶體單位是 KB
+GB = 1024 * 1024  # OpenCue memory unit is KB
 
 
 def wait_for_cuebot(timeout=300):
@@ -31,34 +31,34 @@ def wait_for_cuebot(timeout=300):
         try:
             opencue.api.getShows()
             return
-        except Exception as e:  # Cuebot 剛起來時 gRPC 會拒絕連線
+        except Exception as e:  # Cuebot rejects connections during initial boot
             if time.time() > deadline:
                 raise
-            print("等待 Cuebot：%s" % e)
+            print("Waiting for Cuebot: %s" % e)
             time.sleep(5)
 
 
 def ensure_show(name, allocs, cores):
     try:
         show = opencue.api.findShow(name)
-        print("show %s 已存在" % name)
+        print("Show %s already exists" % name)
     except EntityNotFoundException:
         show = opencue.api.createShow(name)
-        print("建立 show %s" % name)
+        print("Created show %s" % name)
 
     existing = {s.allocation() for s in show.getSubscriptions()}
     for alloc_name in allocs:
         if alloc_name in existing:
-            print("  subscription %s.%s 已存在" % (alloc_name, name))
+            print("  Subscription %s.%s already exists" % (alloc_name, name))
             continue
         show.createSubscription(opencue.api.findAllocation(alloc_name), cores, cores)
-        print("  建立 subscription %s.%s（%d 核）" % (alloc_name, name, cores))
+        print("  Created subscription %s.%s (%d cores)" % (alloc_name, name, cores))
 
 
 def ensure_service(spec):
     name = spec["name"]
-    if opencue.api.getService(name) is not None:  # 找不到時回傳 None，不會丟例外
-        print("service %s 已存在" % name)
+    if opencue.api.getService(name) is not None:  # Returns None if not found, does not raise exception
+        print("Service %s already exists" % name)
         return
     opencue.api.createService(service_pb2.Service(
         name=name,
@@ -72,7 +72,7 @@ def ensure_service(spec):
         timeout_llu=0,
         min_memory_increase=int(spec.get("min_memory_increase_gb", 2) * GB),
     ))
-    print("建立 service %s，tags=%s" % (name, spec["tags"]))
+    print("Created service %s, tags=%s" % (name, spec["tags"]))
 
 
 def split(value):
@@ -86,7 +86,7 @@ def main():
     services = json.loads(os.getenv("OPENCUE_INIT_SERVICES", "") or "[]")
 
     if not shows and not services:
-        print("沒有設定 OPENCUE_INIT_SHOWS 或 OPENCUE_INIT_SERVICES，不需要初始化")
+        print("Neither OPENCUE_INIT_SHOWS nor OPENCUE_INIT_SERVICES set; no initialization needed")
         return 0
 
     wait_for_cuebot()
@@ -94,7 +94,7 @@ def main():
         ensure_show(name, allocs, cores)
     for spec in services:
         ensure_service(spec)
-    print("初始化完成")
+    print("Initialization completed")
     return 0
 
 

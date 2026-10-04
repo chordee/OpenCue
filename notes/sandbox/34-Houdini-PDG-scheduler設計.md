@@ -80,7 +80,7 @@ ocrun houdini <版本> hython <版本目錄>/opencue_pdg_task.py <task 目錄> #
 | **待送出清單等一段時間沒有新增才送出** | 同一個節點的 work item 可能分散在幾次 tick 裡交出來，立刻送出會拆成好幾個 job |
 | **回報直接連回送出端的 Houdini**（`CallbackServerMixin`） | 最簡單。前提是節點連得到工作站：callback server 的 port 限定在固定範圍（`custom_port_range`），防火牆開放這個範圍；工作站的名稱要能從節點解析 |
 | **工作目錄放在共用空間**（預設 `$HIP` 底下） | task 檔、序列化的 work item、PDG 的腳本都要讓節點讀得到。磁碟機代號各機一致、全部是 Windows，所以本機與農場的路徑相同，不需要 path mapping |
-| **不複製送出端的環境** | Local scheduler 會複製整個 Houdini 的環境，農場不這麼做：只帶 PDG 的變數與 work item 自己的變數，與投遞工具的原則相同（[`02` 第四節](../deploy/02-算圖節點.md#傳給-frame-的主機環境變數)） |
+| **不複製送出端的環境** | Local scheduler 會複製整個 Houdini 的環境，農場不這麼做：只帶 PDG 的變數與 work item 自己的變數，與投遞工具的原則相同（[`02` 第四節](../deploy/02-render-nodes.md#傳給-frame-的主機環境變數)） |
 | **service 以版本 tag 反查**，找不到就拒絕 cook | 與投遞工具相同 |
 | **job 名稱含 hip 名稱、TOP 節點名稱、序號** | 一次 cook 可能不只一個 job，在 CueGUI 裡要看得出來源 |
 

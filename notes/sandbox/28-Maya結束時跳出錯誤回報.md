@@ -1,6 +1,6 @@
 # 28 — Maya 算完圖後跳出 Autodesk 錯誤回報
 
-正式做法整理在 [`notes/deploy/02-算圖節點.md` 第四節](../deploy/02-算圖節點.md#四設定-rqdconf)，本篇是查證紀錄。
+正式做法整理在 [`notes/deploy/02-render-nodes.md` 第四節](../deploy/02-render-nodes.md#四設定-rqdconf)，本篇是查證紀錄。
 
 環境：Maya 2027、本機 RQD，2026-09-25。
 

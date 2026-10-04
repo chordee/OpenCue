@@ -1,6 +1,6 @@
 # 27 — 從 Houdini 直接投遞
 
-正式做法整理在 [`notes/deploy/03-工作站.md` 第七節](../deploy/03-工作站.md#七從-houdini-直接投遞)，本篇是設計與實測紀錄。
+正式做法整理在 [`notes/deploy/03-workstations.md` 第七節](../deploy/03-workstations.md#七從-houdini-直接投遞)，本篇是設計與實測紀錄。
 
 環境：Houdini 22.0.429（Python 3.13），OpenCue venv（Python 3.11.9），2026-09-25。
 

@@ -16,7 +16,7 @@ yml 裡明確指定了 `container_name`、network 名稱與 volume 名稱，
 
 ### 做法：停止舊 stack，而不是刪除
 
-1. 備份 DB（見 [`notes/deploy/04` 第二節](../deploy/04-維運.md#二db-備份與還原)）
+1. 備份 DB（見 [`notes/deploy/04` 第二節](../deploy/04-operations.md#二db-備份與還原)）
 2. 舊 stack → Stop
 3. 新增 Git stack（名稱不能與舊的相同）
 

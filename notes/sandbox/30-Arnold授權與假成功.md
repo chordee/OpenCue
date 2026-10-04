@@ -1,6 +1,6 @@
 # 30 — Arnold 在農場上拿不到授權，frame 卻顯示成功
 
-正式做法整理在 [`notes/deploy/02-算圖節點.md` 第五節](../deploy/02-算圖節點.md#五呼叫-dccocrun)，本篇是查證紀錄。
+正式做法整理在 [`notes/deploy/02-render-nodes.md` 第五節](../deploy/02-render-nodes.md#五呼叫-dccocrun)，本篇是查證紀錄。
 
 環境：Maya 2027、MtoA（Arnold 7.5.1.1）、本機 RQD，2026-09-25。
 

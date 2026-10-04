@@ -1,17 +1,17 @@
-# OpenCue 監控（選用）—— 獨立的 stack，Prometheus + Grafana + PostgreSQL exporter
+# OpenCue Monitoring Stack (Optional) - Standalone stack: Prometheus + Grafana + PostgreSQL exporter
 #
-# 前提：opencue stack 已經在執行（本 stack 加入它的 opencue network）。
-# 設定檔以 compose 的 inline configs 寫在本檔，Portainer 的 Web editor 與
-# Repository 模式都能直接部署，不需要掛載 repo 裡的檔案（已實測）。
+# Prerequisite: opencue stack must be running (this stack joins its opencue network).
+# Configuration uses compose inline configs; compatible with Portainer Web editor and
+# Repository mode without host bind mounts (verified).
 #
-# 部署後：
-#   - Grafana：http://<伺服器>:3001，帳號 admin
-#   - 儀表板：到 Grafana → Dashboards → Import，上傳 repo 裡的
+# Post-deployment:
+#   - Grafana: http://<server-ip>:3001, default user: admin
+#   - Dashboards: In Grafana -> Dashboards -> Import, import:
 #       sandbox/config/grafana/dashboards/PostgreSQL.json
 #       sandbox/config/grafana/dashboards/cuebot.json
-#     Cuebot 儀表板需要 opencue stack 設定 CUEBOT_METRICS_COLLECTOR=true，否則全部空白
+#     Cuebot dashboard requires CUEBOT_METRICS_COLLECTOR=true in opencue stack; otherwise blank.
 #
-# 說明見 notes/deploy/04-維運.md。
+# Documentation: notes/deploy/04-operations.md.
 
 services:
   prometheus:
@@ -26,7 +26,7 @@ services:
       - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
     volumes:
       - prometheus-data:/prometheus
-    # 刻意不 publish：Prometheus 沒有認證，只給同網路的 Grafana 使用
+    # Do not publish port: Prometheus lacks authentication; accessible only by Grafana within network
     networks: [opencue]
     restart: unless-stopped
     deploy:
@@ -40,8 +40,8 @@ services:
     environment:
       DATA_SOURCE_URI: db:5432/${POSTGRES_DB:-cuebot}?sslmode=disable
       DATA_SOURCE_USER: ${POSTGRES_USER:-cuebot}
-      # 與 opencue stack 的 POSTGRES_PASSWORD 相同
-      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD:?必須設定}
+      # Matches POSTGRES_PASSWORD in opencue stack
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD:?mandatory setting}
     networks: [opencue]
     restart: unless-stopped
     deploy:
@@ -53,7 +53,7 @@ services:
     image: grafana/grafana:12.3.5
     container_name: opencue-grafana
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?必須設定}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?mandatory setting}
       GF_USERS_ALLOW_SIGN_UP: "false"
     configs:
       - source: grafana_datasource
@@ -84,7 +84,7 @@ configs:
     content: |
       apiVersion: 1
       datasources:
-        # 名稱必須是 prometheus，上游儀表板以這個名稱引用
+        # Name must be prometheus as referenced by upstream dashboards
         - name: prometheus
           type: prometheus
           uid: prometheus

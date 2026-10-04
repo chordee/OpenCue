@@ -1,6 +1,6 @@
 # 32 — 節點的 tag 總長度超過 128 字元就註冊不上
 
-正式做法整理在 [`notes/deploy/02-算圖節點.md` 第六節](../deploy/02-算圖節點.md#六派工標籤rqd_tags)，本篇是查證紀錄。
+正式做法整理在 [`notes/deploy/02-render-nodes.md` 第六節](../deploy/02-render-nodes.md#六派工標籤rqd_tags)，本篇是查證紀錄。
 
 環境：全新重建的 sandbox（空的 DB），2026-09-25。
 
@@ -8,7 +8,7 @@
 
 ## 一、現象
 
-照 [`deploy/02`](../deploy/02-算圖節點.md) 從頭設定工作站後啟動 RQD，`cueadmin -lh` 一直是空的。
+照 [`deploy/02`](../deploy/02-render-nodes.md) 從頭設定工作站後啟動 RQD，`cueadmin -lh` 一直是空的。
 RQD 的 log 停在 `RQD Started`，沒有任何錯誤。Cuebot 的 log：
 
 ```
