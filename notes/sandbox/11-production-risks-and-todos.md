@@ -34,7 +34,7 @@ docker exec opencue-cuebot getent hosts RENDER01
 docker exec opencue-cuebot bash -c 'timeout 3 bash -c "</dev/tcp/RENDER01/8444" && echo OK || echo FAIL'
 ```
 
-[`notes/deploy/server/opencue.portainer.yml`](../deploy/server/opencue.portainer.yml) omits explicit DNS configurations by default: containers inherit host search domains. If the host resolves node short names natively, no configuration is needed. When host inheritance fails, overlay [`notes/deploy/server/site.example.yml`](../deploy/server/site.example.yml). (An empty `dns_search` strips inherited search domains, so it cannot be placed as a defaulted variable in the primary stack; see [`22` Section 6](22-two-deployment-routes.md#6-what-changed-in-the-primary-stack-for-environment-only-deployment).)
+[`notes/deploy/server/opencue.portainer.yml`](../deploy/server/opencue.portainer.yml) omits explicit DNS configurations by default: containers inherit host search domains. If the host resolves node short names natively, no configuration is needed. When host inheritance fails, overlay [`notes/deploy/server/site.example.yml`](../deploy/server/site.example.yml). (An empty `dns_search` strips inherited search domains, so it cannot be placed as a defaulted variable in the primary stack; see [`22` Section 6](22-two-deployment-routes.md#6-primary-manifest-architecture-environment-driven-configuration).)
 
 ## 2. Network Drive Letters Are Supported, with One Exception
 
@@ -117,7 +117,7 @@ If CueWeb web log viewing is not deployed, this constraint does not apply, and `
 | Web Browser | Linux Host | 3000 | TCP | CueWeb UI (if deployed) |
 | Nodes / Workstations | File Server | 445 | TCP | SMB shared storage |
 
-**Inbound port 8444 is frequently overlooked**: Windows Defender Firewall blocks inbound connections by default. When blocked, symptoms mirror [Pitfall #3 in `04-deployment-process.md`](04-deployment-process.md#pitfall-3-rqd-reports-ipv6-address-cuebot-cannot-connect-back) ("host appears UP, frames stuck indefinitely in RUNNING").
+**Inbound port 8444 is frequently overlooked**: Windows Defender Firewall blocks inbound connections by default. When blocked, symptoms mirror [Pitfall #3 in `04-deployment-process.md`](04-deployment-process.md#pitfall-3-rqd-reports-ipv6-address-cuebot-fails-to-connect-back) ("host appears UP, frames stuck indefinitely in RUNNING").
 
 ### Security Exposure: gRPC Lacks Authentication
 
@@ -132,7 +132,7 @@ Implications:
 
 ## 4. Fresh Environment Initialization (Administrative Bootstrap)
 
-> **Note**: Flyway's `migrate.sh` automatically seeds `seed_data.sql` if no shows exist in the database. When deploying with this stack, show `testing`, facilities `local` / `cloud`, and allocations `local.general` / `local.desktop` / `cloud.general` **already exist out of the box**. Show and subscription creation is handled automatically by the `init` container; see [`22` Section 5](22-two-deployment-routes.md#5-initialization-container-init) and [`notes/deploy/01` Section 4](../deploy/01-server.md#4-initialize-show-subscription-and-services). The commands below are preserved for manual reference.
+> **Note**: Flyway's `migrate.sh` automatically seeds `seed_data.sql` if no shows exist in the database. When deploying with this stack, show `testing`, facilities `local` / `cloud`, and allocations `local.general` / `local.desktop` / `cloud.general` **already exist out of the box**. Show and subscription creation is handled automatically by the `init` container; see [`22` Section 5](22-two-deployment-routes.md#5-initialization-container-init) and [`notes/deploy/01` Section 4](../deploy/01-server.md#4-bootstrapping-shows-subscriptions-and-services). The commands below are preserved for manual reference.
 
 ```bash
 # 1. Create production show

@@ -83,7 +83,7 @@ docker exec opencue-cuebot getent hosts host.docker.internal
   → 192.168.65.254
 ```
 
-Consequently, frames could not be dispatched (exhibiting symptoms identical to [Pitfall #3 in `04-deployment-process.md`](04-deployment-process.md#pitfall-3-rqd-reports-ipv6-address-cuebot-cannot-connect-back)).
+Consequently, frames could not be dispatched (exhibiting symptoms identical to [Pitfall #3 in `04-deployment-process.md`](04-deployment-process.md#pitfall-3-rqd-reports-ipv6-address-cuebot-fails-to-connect-back)).
 
 **Fix**: Configure a **single-label** actual hostname and supply `extra_hosts` in the Cuebot compose service:
 

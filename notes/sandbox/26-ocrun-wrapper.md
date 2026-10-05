@@ -1,6 +1,6 @@
 # 26 — Replacing DCC Wrappers with ocrun
 
-Production procedures are summarized in [`notes/deploy/02-render-nodes.md` Section 5](../deploy/02-render-nodes.md#5-invoking-dcc-binaries-via-ocrun); this document records the architectural motivation, design, and empirical verification.
+Production procedures are summarized in [`notes/deploy/02-render-nodes.md` Section 5](../deploy/02-render-nodes.md#5-invoking-dcc-applications-ocrun); this document records the architectural motivation, design, and empirical verification.
 
 ---
 
@@ -93,7 +93,7 @@ All jobs returned exit code 0 without retries, updating output files successfull
 [ocrun] houdini 22.0.429: D:\programs\Side Effects Software\Houdini 22.0.429\bin\husk.EXE --make-output-path -f 1 -n 1 -o C:/opencue/render/twostage.$F4.exr C:/opencue/render/twostage.usda
 ```
 
-Nuke executed successfully without custom `NUKE_DISK_CACHE` definitions, validating that `TEMP` fallback injection in `ocrun` operates as designed (for failure profiles without these variables, see [`17` Scenario 7](17-troubleshooting.md#scenario-7-nuke-rendering-fails-globally-unable-to-create-disk-cache)).
+Nuke executed successfully without custom `NUKE_DISK_CACHE` definitions, validating that `TEMP` fallback injection in `ocrun` operates as designed (for failure profiles without these variables, see [`17` Scenario 7](17-troubleshooting.md#scenario-7-nuke-render-fails-with-unable-to-create-disk-cache)).
 
 ### 4. Submission from Maya
 
@@ -116,7 +116,7 @@ Dispatched a hython frame set to execute for 600 seconds, then killed the job mi
 
 RQD on Windows terminates entire process trees using `taskkill /F /T /PID` (`rqnetwork.py:172`); adding an intermediary `ocrun` layer produces zero orphaned child processes.
 
-During the initial kill test, the job failed to respond: invoking `job.kill()` without providing a reason caused Cuebot to log `**Invalid Job Kill Request**` and ignore the request while returning a success response to the client. Supplying an explicit `reason` resolved the issue. See [`17` Scenario 26](17-troubleshooting.md#scenario-26-killing-a-job-via-api-succeeds-without-error-but-job-continues-running).
+During the initial kill test, the job failed to respond: invoking `job.kill()` without providing a reason caused Cuebot to log `**Invalid Job Kill Request**` and ignore the request while returning a success response to the client. Supplying an explicit `reason` resolved the issue. See [`17` Scenario 26](17-troubleshooting.md#scenario-26-killing-job-via-api-silently-fails-while-job-keeps-running).
 
 ### 6. Arguments Containing Whitespace
 
@@ -143,8 +143,8 @@ The following architectural items are not automatically resolved by Python and *
 | Requirement | Implementation Strategy |
 |---|---|
 | Drive Letter Mapping | Linux lacks `P:\`. Command-line arguments can be translated via `ocrun`; paths embedded inside scene assets require native DCC translation features (Maya dirmap, `HOUDINI_PATHMAP`, Nuke filename filters). |
-| Dispatch Filtering | Cuebot matches OS tags between jobs and nodes (`str_os` in `DispatchQuery.java`). Current submission rules explicitly pass `os="Windows"` ([`deploy/03` Section 9](../deploy/03-workstations.md#9-job-submission-considerations)). |
-| Frame Log Storage | Dual-platform farms require separate log root configurations ([`17` Scenario 21](17-troubleshooting.md#scenario-21-in-hybrid-os-farm-job-succeeds-but-logs-cannot-be-found)). |
+| Dispatch Filtering | Cuebot matches OS tags between jobs and nodes (`str_os` in `DispatchQuery.java`). Current submission rules explicitly pass `os="Windows"` ([`deploy/03` Section 9](../deploy/03-workstations.md#9-pre-submission-checklist)). |
+| Frame Log Storage | Dual-platform farms require separate log root configurations ([`17` Scenario 21](17-troubleshooting.md#scenario-21-in-multi-os-farms-jobs-succeed-but-logs-cannot-be-found)). |
 | DCC Application Environments | Linux DCC binaries, plugins, and license server configurations must be audited and verified independently. |
 
 ---

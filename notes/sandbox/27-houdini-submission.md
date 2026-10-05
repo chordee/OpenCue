@@ -1,6 +1,6 @@
 # 27 — Direct Submission from Houdini
 
-Production procedures are summarized in [`notes/deploy/03-workstations.md` Section 7](../deploy/03-workstations.md#7-direct-submission-from-houdini); this document records the architectural design and empirical testing results.
+Production procedures are summarized in [`notes/deploy/03-workstations.md` Section 7](../deploy/03-workstations.md#7-submitting-directly-from-houdini); this document records the architectural design and empirical testing results.
 
 Environment: Houdini 22.0.429 (Python 3.13), OpenCue venv (Python 3.11.9), 2026-09-25.
 

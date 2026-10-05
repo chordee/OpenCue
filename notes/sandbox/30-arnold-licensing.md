@@ -1,6 +1,6 @@
 # 30 — Arnold License Checkout Failure on Farm Reporting False Success
 
-Production procedures are summarized in [`notes/deploy/02-render-nodes.md` Section 5](../deploy/02-render-nodes.md#5-invoking-dcc-binaries-via-ocrun); this document details the investigation and mitigation.
+Production procedures are summarized in [`notes/deploy/02-render-nodes.md` Section 5](../deploy/02-render-nodes.md#5-invoking-dcc-applications-ocrun); this document details the investigation and mitigation.
 
 Environment: Maya 2027, MtoA (Arnold 7.5.1.1), local Windows RQD host, 2026-09-25.
 

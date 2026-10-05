@@ -14,7 +14,7 @@ The compose manifest declares explicit `container_name`, network, and volume def
 
 ### Safe Migration Procedure: Stop the Existing Stack
 
-1. Perform database backup (see [`notes/deploy/04` Section 2](../deploy/04-operations.md#2-database-backup-and-restore)).
+1. Perform database backup (see [`notes/deploy/04` Section 2](../deploy/04-operations.md#2-postgresql-database-backup-and-restore)).
 2. Stop the existing stack in Portainer UI.
 3. Create new Git repository stack.
 

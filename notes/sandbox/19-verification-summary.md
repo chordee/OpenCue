@@ -66,7 +66,7 @@ Status Legend:
 | **Two-stage Houdini submitter**: File Cache (sim/cache), ROP Geometry, Karma LOP | [`27`](27-houdini-submission.md) |
 | **RQD hardcodes `TZ=PST8PDT`**: resolved via `[UseHostEnvVar]` TZ pass-through | [`29`](29-frame-timezone.md) |
 | **Houdini submitter filters nodes by RopNode + allowlist** | [`27`](27-houdini-submission.md) |
-| **Submission UI regression test suite** (`lab/check_submit_tools.py`): 15 tests pass | [`04` Section 9](../deploy/04-operations.md#9-regression-testing-after-syncing-upstream) |
+| **Submission UI regression test suite** (`lab/check_submit_tools.py`): 15 tests pass | [`04` Section 9](../deploy/04-operations.md#9-post-upstream-regression-testing) |
 | **Arnold license validation on farm**: `solidangle_LICENSE` required in `dcc.toml` | [`30`](30-arnold-licensing.md) |
 | **`ocrun` detects Arnold license aborts and forces exit code 1** | [`30`](30-arnold-licensing.md) |
 | **Two-stage Nuke submitter**: `-F #FRAMESPEC#` chunking and multi-Write node execution | [`31`](31-nuke-submission.md) |
@@ -111,7 +111,7 @@ Status Legend:
 | **Drive Letter Uniformity Across Hosts** | Secondary physical host |
 | **Windows Service Execution (Session 0)** | Administrator privileges |
 | **Auto-Start on Boot (Scheduled Tasks)** | Administrator privileges / Group Policy distribution |
-| **End-to-End Enterprise Storage** | Studio file server (validated local SMB via UNC in [`33`](33-rebuild-from-scratch.md#reading-frame-logs-in-cueweb)) |
+| **End-to-End Enterprise Storage** | Studio file server (validated local SMB via UNC in [`33`](33-rebuild-from-scratch.md#cueweb-frame-log-retrieval)) |
 | **Registry TLS & Authentication** | Enterprise TLS certificates |
 | **Scheduled Host Cron Maintenance** | Host root access or containerized cron deployment |
 | **Off-Host Backup Replication** | External backup destination |

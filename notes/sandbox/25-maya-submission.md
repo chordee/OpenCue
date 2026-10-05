@@ -1,6 +1,6 @@
 # 25 — Direct Submission from Maya
 
-Production procedures are summarized in [`notes/deploy/03-workstations.md` Section 6](../deploy/03-workstations.md#6-direct-submission-from-maya); this document serves as the architectural evaluation and testing log.
+Production procedures are summarized in [`notes/deploy/03-workstations.md` Section 6](../deploy/03-workstations.md#6-submitting-directly-from-maya); this document serves as the architectural evaluation and testing log.
 
 > The transitional adapter wrapper `Render-<version>.bat` described in this document was subsequently superseded by `ocrun maya <version> Render`; see [`26`](26-ocrun-wrapper.md).
 
@@ -138,7 +138,7 @@ Error: makeCameraRenderable.mel line 34: Camera [None] does not exist.
 // Maya exited with status 210
 ```
 
-When no camera is selected in CueSubmit's dropdown menu, the button text displays `[None]`, and `InMayaSettings.getCommandData()` literally evaluates button text as the camera name. Selecting multiple cameras emits `-cam a, b`, which fails parsing. Programmatic test cases previously pre-selected cameras, leaving this undetected. See [`05` Issue #22](05-upstream-issues.md#22-cuesubmit-maya-camera-selection-submits-invalid--cam-flag).
+When no camera is selected in CueSubmit's dropdown menu, the button text displays `[None]`, and `InMayaSettings.getCommandData()` literally evaluates button text as the camera name. Selecting multiple cameras emits `-cam a, b`, which fails parsing. Programmatic test cases previously pre-selected cameras, leaving this undetected. See [`05` Issue #22](05-upstream-issues.md#22-cuesubmit-maya-camera-selection-sends-invalid--cam).
 
 **Fix** (`MayaSettings` in `opencue_maya_submit.py`):
 

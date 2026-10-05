@@ -24,7 +24,7 @@ Drives mounted via `subst` exist only within the interactive user login session,
 |---|---|---|
 | 01: Create Stack | Compose Path field rendered as a link showing full path but linking to `server/...`; copying the link target corrupted the path, causing deployment failure (`open /data/compose/7/server/opencue.portainer.yml: no such file`) | Converted documentation reference to plain text |
 | 01: Create Stack | Existing stack persisted, causing name collision | Updated 01 with prerequisites; containers mounting deleted host directories must be removed before stack deletion |
-| 01: Verification | Flyway log concluded with 3 lines of `duplicate key ... c_task_lock_pk` | Harmless conflict between upstream seed data and migrations; documented in 01; see [`05` Issue #26](05-upstream-issues.md#26-duplicate-key-insert-on-task_lock-between-seed-and-migration-during-fresh-deploy) |
+| 01: Verification | Flyway log concluded with 3 lines of `duplicate key ... c_task_lock_pk` | Harmless conflict between upstream seed data and migrations; documented in 01; see [`05` Issue #26](05-upstream-issues.md#26-clean-deployments-duplicate-task_lock-insertions-between-seed-data-and-migrations) |
 | 02: Node Registration | **Node registration failed permanently**: cumulative tag string length (129) exceeded upstream schema limit (128) | Applied studio Flyway migration; see [`32`](32-node-tag-limit.md) |
 | 02: Configuration | `rqd-start.bat` omitted EDIT marker for `NODE_ROLE`, despite documentation stating it must be reviewed per machine | Added EDIT marker |
 | 03: Configuration | Client templates referenced server as `linux-server.studio.local`; other docs referenced `opencue-server.studio.local` | Standardized references |

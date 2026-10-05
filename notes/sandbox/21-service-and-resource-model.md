@@ -25,7 +25,7 @@ Job    testing-testshot-chordee_houdini_render        Submitted unit of work
 ## 2. Username
 
 Stored in `job.str_user`, serving three purposes:
-1. Linux RQD uses it to execute frames under matching system users (see UID collision in [`04` Pitfall #4](04-deployment-process.md#pitfall-4-rqd-fails-to-create-user-uid-collision)).
+1. Linux RQD uses it to execute frames under matching system users (see UID collision in [`04` Pitfall #4](04-deployment-process.md#pitfall-4-rqd-user-provisioning-failure-uid-collision)).
 2. CueGUI uses it for `selectMine` filtering.
 3. Accounting and auditing.
 

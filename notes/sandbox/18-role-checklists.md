@@ -48,7 +48,7 @@ docker exec opencue-cuebot getent hosts RENDER01
 docker exec opencue-cuebot bash -c 'timeout 3 bash -c "</dev/tcp/RENDER01/8444" && echo OK || echo FAIL'
 ```
 
-If resolution fails, overlay [`notes/deploy/server/site.example.yml`](../deploy/server/site.example.yml) to add `dns` and `dns_search` pointing to internal studio DNS servers (see [`11` Section 1](11-production-risks-and-todos.md#1-multi-node-dns-resolution-avoid-hardcoded-extra_hosts) and [`22` Section 6](22-two-deployment-routes.md#6-what-changed-in-the-primary-stack-for-environment-only-deployment)). **Avoid hardcoding entries in extra_hosts, which does not scale.**
+If resolution fails, overlay [`notes/deploy/server/site.example.yml`](../deploy/server/site.example.yml) to add `dns` and `dns_search` pointing to internal studio DNS servers (see [`11` Section 1](11-production-risks-and-todos.md#1-multi-node-dns-resolution-avoid-hardcoded-extra_hosts) and [`22` Section 6](22-two-deployment-routes.md#6-primary-manifest-architecture-environment-driven-configuration)). **Avoid hardcoding entries in extra_hosts, which does not scale.**
 
 Failure to resolve hostnames leaves frames stuck in `RUNNING` with zero log output while host lists show healthy `UP` status, creating a severe diagnostic blind spot.
 

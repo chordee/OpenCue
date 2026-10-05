@@ -1,6 +1,6 @@
 # 31 — Direct Submission from Nuke
 
-Production procedures are summarized in [`notes/deploy/03-workstations.md` Section 8](../deploy/03-workstations.md#8-direct-submission-from-nuke); this document records the architectural design and empirical testing.
+Production procedures are summarized in [`notes/deploy/03-workstations.md` Section 8](../deploy/03-workstations.md#8-submitting-directly-from-nuke); this document records the architectural design and empirical testing.
 
 Environment: Nuke 17.0v1 (Python 3.11.11), OpenCue venv (Python 3.11.9), 2026-09-25.
 
@@ -11,7 +11,7 @@ Environment: Nuke 17.0v1 (Python 3.11.11), OpenCue venv (Python 3.11.9), 2026-09
 | Component | Defect |
 |---|---|
 | In-repo plugin `cuesubmit/plugins/nuke/` | Decoupled architecture, but invokes `communicate()` to **block until submission GUI closes**, freezing Nuke interactive sessions; requires `CUE_PYTHON_BIN` or system `python` on PATH |
-| CueSubmit Nuke job type | Submits `-X [All]` when no Write node is selected; emits `-X a, b` when multiple nodes selected (matching the camera defect documented in [`05` Issue #22](05-upstream-issues.md#22-cuesubmit-maya-camera-selection-submits-invalid--cam-flag)) |
+| CueSubmit Nuke job type | Submits `-X [All]` when no Write node is selected; emits `-X a, b` when multiple nodes selected (matching the camera defect documented in [`05` Issue #22](05-upstream-issues.md#22-cuesubmit-maya-camera-selection-sends-invalid--cam)) |
 | CueSubmit Nuke job type | Hardcodes `-F #IFRAME#`; when chunk size > 1, renders only the initial frame of each task |
 
 Verification of the chunking defect (`-F #IFRAME#`, range `1-4`, chunk size 2):
@@ -21,7 +21,7 @@ frames: 1 SUCCEEDED, 3 SUCCEEDED
 output: a.0001.png, a.0003.png          ← Frames 2 and 4 skipped entirely yet marked completed
 ```
 
-See [`05` Issue #25](05-upstream-issues.md#25-cuesubmit-nuke-type-emits-invalid--x-and-skips-frames-when-chunk--1).
+See [`05` Issue #25](05-upstream-issues.md#25-cuesubmit-nuke-submission-sends-invalid--x-drops-frames-when-chunk--1).
 
 ---
 
