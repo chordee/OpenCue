@@ -375,10 +375,10 @@ Reference: [`notes/sandbox/11` Section 2](../sandbox/11-production-risks-and-tod
 **Inbound port 8444 is the most frequent deployment oversight**, blocked by default on Windows Firewall. Symptoms of blocked port 8444: the node appears `UP` and healthy, but dispatched frames hang in `RUNNING` indefinitely with zero log generation.
 
 ```bat
-netsh advfirewall firewall add rule name="OpenCue RQD" dir=in action=allow protocol=TCP localport=8444
+netsh advfirewall firewall add rule name="OpenCue RQD" dir=in action=allow protocol=TCP localport=8444 remoteip=<OPENCUE_SERVER_IP>
 ```
 
-Requires administrator privileges.
+Requires administrator privileges. Replace `<OPENCUE_SERVER_IP>` with the OpenCue server's IP (or a trusted subnet in CIDR form). RQD's port 8444 accepts unauthenticated gRPC calls, including launching frames and shutting down or rebooting the node, so only Cuebot should reach it.
 
 ---
 

@@ -239,7 +239,7 @@ Route A does not support file overlays directly; incorporate custom configuratio
 
 Used when the host cannot connect to ghcr.io, or when deploying customized images:
 
-1. Deploy [`server/registry.portainer.yml`](server/registry.portainer.yml) as an independent stack.
+1. Deploy [`server/registry.portainer.yml`](server/registry.portainer.yml) as an independent stack. The template has no TLS or authentication and publishes its port on all interfaces: deploy it only on an internal network, restrict the port to the Docker hosts by firewall, and see the note at the end of this section before production use.
 2. Build and push from your workstation/dev machine:
 
    ```bash
@@ -251,7 +251,7 @@ Used when the host cannot connect to ghcr.io, or when deploying customized image
 
    `push` must explicitly enumerate services to avoid attempting to push external base images like `postgres:15.1`.
 
-3. Update the 5 image path variables in `env.example` to point to the internal registry.
+3. Point the 5 image variables at the internal registry where the deployment reads them (the Portainer stack's environment variables, or the `.env` loaded by Docker Compose), then redeploy. Editing `env.example` alone changes nothing.
 
 **Production internal registries require TLS and authentication** (unverified in sandbox). Without TLS, every Docker host pulling images must configure `insecure-registries` in `daemon.json`, necessitating Docker engine restarts.
 

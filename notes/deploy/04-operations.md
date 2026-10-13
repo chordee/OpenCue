@@ -49,9 +49,9 @@ Container image versions are governed by environment variables rather than the Y
    (or CLI: `gh workflow run sandbox-images.yml --ref <branch> -f upstream_version=1.34.22`).
 3. Upon workflow completion, the Summary tab outputs new image tags formatted as `<upstream_version>-<short_commit_sha>` (e.g. `1.34.22-abcd1234`).
 
-- Historical version tags persist on GHCR without in-place overwriting, guaranteeing reproducible rollbacks.
+- Earlier tags remain on GHCR, so rollbacks can return to any previous tag.
 - Tag `latest` continuously mutates to point to the newest build; **do not use `latest` in production**.
-- **Re-running the workflow without new commits** generates an identical tag and overwrites the existing image. Every distinct image release requires a distinct commit SHA.
+- **Re-running the workflow on the same commit with the same `upstream_version`** generates an identical tag and overwrites that image (same source, but base images may have changed). Every distinct image release requires a distinct commit SHA. To pin the exact image, record its digest from the workflow log.
 - After releasing new tags, update default references in [`README.md`](README.md) and [`server/env.example`](server/env.example).
 
 Reference: [`notes/sandbox/22` Section 8](../sandbox/22-two-deployment-routes.md#8-publishing-images-to-github-container-registry-ghcr).
@@ -97,7 +97,7 @@ Revert image tags in Portainer environment variables -> Update stack. Rolling ba
 
 ## 2. PostgreSQL Database Backup and Restore
 
-The database holds job lifecycle states and historical records, not final render assets. Losing a single day's data represents "losing yesterday's historical records," not lost render output. **Daily backups are sufficient for typical production.**
+The database holds job lifecycle states and historical records, not final render assets. Restoring a backup loses everything after it: jobs submitted or changed since then, and their frame states and history; render output on disk is unaffected. **Daily backups are sufficient when losing up to a day of job state is acceptable**; otherwise back up more often.
 
 ### Backup
 
@@ -328,7 +328,7 @@ Confirm no active or queued jobs reference the target release directory before p
 import opencue
 for job in opencue.api.getJobs(include_finished=False):
     for layer in job.getLayers():
-        if "releases/2026.09.25/" in layer.data.command:
+        if "releases/2026.09.25/" in layer.data.command.replace("\\", "/"):
             print(job.name())
 ```
 
