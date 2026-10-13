@@ -1,21 +1,22 @@
-# 站點專屬設定的範例。複製成 site.yml 後修改，部署時再多疊一層：
+# Site-specific configuration override example. Copy to site.yml and overlay at deployment:
 #   docker compose --env-file .env -f opencue.portainer.yml [-f build.yml] -f site.yml up -d
 #
-# 只在「宿主本身解析不到 render node 短名稱」時才需要。
-# 宿主能解析的話，容器會沿用宿主的 search 網域，這個檔案可以不用。
+# Only needed when the Docker host cannot resolve render node short names via DNS.
+# If the host resolves node short names, containers inherit search domains automatically,
+# making this file unnecessary.
 #
-# Portainer 路線沒辦法疊加檔案，需要時得把這幾段直接貼進 stack 編輯器。
+# Portainer does not support compose file overlays directly; paste these blocks into the Web editor if needed.
 
 services:
   cuebot:
-    # 做法一：指定公司 DNS 與網域後綴（節點多時的正解）
+    # Option 1: Specify studio DNS and domain search suffix (Recommended for multiple nodes)
     dns:
       - 192.168.1.1
     dns_search:
       - studio.local
 
-    # 做法二：沒有 DNS 時逐台列出（只適合少量節點）
-    # 會與主檔的 extra_hosts 合併，不是取代。
+    # Option 2: Manually list nodes without DNS (Suitable only for small node counts)
+    # Merges with extra_hosts in the main compose file.
     # extra_hosts:
     #   - "RENDER01:192.168.1.101"
     #   - "RENDER02:192.168.1.102"
