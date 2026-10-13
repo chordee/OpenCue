@@ -67,11 +67,11 @@ Pre-built Docker images are hosted publicly on GitHub Container Registry (GHCR),
 
 | Component | Image |
 |---|---|
-| Cuebot | `ghcr.io/chordee/opencue/cuebot:1.34.4-6e7e82ac` |
-| Flyway (DB Migration) | `ghcr.io/chordee/opencue/flyway:1.34.4-6e7e82ac` |
-| REST Gateway | `ghcr.io/chordee/opencue/rest-gateway:1.34.4-6e7e82ac` |
-| CueWeb | `ghcr.io/chordee/opencue/cueweb:1.34.4-6e7e82ac` |
-| init (Bootstrap show/service) | `ghcr.io/chordee/opencue/init:1.34.4-6e7e82ac` |
+| Cuebot | `ghcr.io/chordee/opencue/cuebot:1.34.22-49916ee4` |
+| Flyway (DB Migration) | `ghcr.io/chordee/opencue/flyway:1.34.22-49916ee4` |
+| REST Gateway | `ghcr.io/chordee/opencue/rest-gateway:1.34.22-49916ee4` |
+| CueWeb | `ghcr.io/chordee/opencue/cueweb:1.34.22-49916ee4` |
+| init (Bootstrap show/service) | `ghcr.io/chordee/opencue/init:1.34.22-49916ee4` |
 
 - These defaults are pre-configured in [`server/env.example`](server/env.example).
 - Tags are `<upstream release>-<commit SHA>`: the version is the upstream release the build is based on, and the SHA identifies the studio commit built.
