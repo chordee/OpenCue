@@ -45,9 +45,9 @@ Container image versions are governed by environment variables rather than the Y
 ### 1.1 Building New Container Images
 
 1. Modify source code or merge upstream `master` releases into your development branch; commit and push.
-2. In GitHub -> Actions -> **Sandbox images** -> Click **Run workflow**
-   (or CLI: `gh workflow run sandbox-images.yml --ref <branch>`).
-3. Upon workflow completion, the Summary tab outputs new image tags formatted as `<version>-<short_commit_sha>` (e.g. `1.34.5-abcd1234`).
+2. In GitHub -> Actions -> **Sandbox images** -> Click **Run workflow**, and enter the upstream release version the branch is based on in **upstream_version** (e.g. `1.34.22`)
+   (or CLI: `gh workflow run sandbox-images.yml --ref <branch> -f upstream_version=1.34.22`).
+3. Upon workflow completion, the Summary tab outputs new image tags formatted as `<upstream_version>-<short_commit_sha>` (e.g. `1.34.22-abcd1234`).
 
 - Historical version tags persist on GHCR without in-place overwriting, guaranteeing reproducible rollbacks.
 - Tag `latest` continuously mutates to point to the newest build; **do not use `latest` in production**.

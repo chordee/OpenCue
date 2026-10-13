@@ -74,8 +74,7 @@ Pre-built Docker images are hosted publicly on GitHub Container Registry (GHCR),
 | init (Bootstrap show/service) | `ghcr.io/chordee/opencue/init:1.34.4-6e7e82ac` |
 
 - These defaults are pre-configured in [`server/env.example`](server/env.example).
-- Build `1.34.4-6e7e82ac` is based on upstream **v1.34.22**. The version part of a tag does not follow upstream patch numbers
-  (the version script cannot derive them on the fork branch); the commit SHA identifies the build.
+- Tags are `<upstream release>-<commit SHA>`: the version is the upstream release the build is based on, and the SHA identifies the studio commit built.
 - Target architecture: **linux/amd64** only (x86-64).
 - CueWeb is packaged **without authentication**: any client reaching port 3000 can manage jobs. Restrict access via internal firewall.
 - Total download size is ~6 GB; allow adequate time for initial pulls.
