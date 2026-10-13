@@ -1,0 +1,45 @@
+# Mirrors notes/deploy/server from studio/release to the studio/deploy branch.
+# Portainer refuses to clone a repository that contains symlinks (upstream has
+# a few), so the production stack tracks studio/deploy, which holds only the
+# server deployment files at the same paths.
+# See notes/deploy/01-server.md section 3.2.
+
+name: Studio deploy branch
+
+on:
+  push:
+    branches: [studio/release]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: studio-deploy-branch
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: studio/release
+
+      - name: Commit notes/deploy/server to studio/deploy
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          export GIT_INDEX_FILE=$RUNNER_TEMP/deploy-index
+          git read-tree --prefix=notes/deploy/server/ HEAD:notes/deploy/server
+          TREE=$(git write-tree)
+          unset GIT_INDEX_FILE
+          PARENT=""
+          if git fetch --depth=1 origin studio/deploy; then
+            if [ "$(git rev-parse FETCH_HEAD^{tree})" = "$TREE" ]; then
+              echo "studio/deploy is up to date"
+              exit 0
+            fi
+            PARENT="-p FETCH_HEAD"
+          fi
+          COMMIT=$(git commit-tree "$TREE" $PARENT -m "Deploy files from studio/release $(git rev-parse --short HEAD)")
+          git push origin "$COMMIT:refs/heads/studio/deploy"

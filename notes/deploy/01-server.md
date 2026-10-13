@@ -116,7 +116,7 @@ Reference: [`notes/sandbox/13`](../sandbox/13-cueweb-and-rest-gateway.md), [`not
    | Field | Value |
    |---|---|
    | Repository URL | `https://github.com/chordee/OpenCue` |
-   | Repository reference | `refs/heads/studio/release` (**Do not use** `studio/main`; see rationale below) |
+   | Repository reference | `refs/heads/studio/deploy` (**Do not use** `studio/main` or `studio/release`; see rationale below) |
    | Compose path | `notes/deploy/server/opencue.portainer.yml` (Relative to repo root) |
    | Authentication | Disabled (Public repo) |
 
@@ -129,6 +129,9 @@ The advantage of Repository mode is that YAML modifications in git are synchroni
 
 **Why track `studio/release` instead of `studio/main`**:
 `studio/main` is the daily active branch where notes, experimental scripts, and iterative changes are frequently committed. If production tracks it directly, **any push will automatically deploy to production within minutes**, including faulty YAML definitions. The `studio/release` branch is advanced only when production rollouts are intentionally approved, enabling clear release boundaries and simple rollbacks. See [`04-operations.md` Section 1](04-operations.md#1-upgrades-and-rollbacks).
+
+**Why `studio/deploy` instead of `studio/release`**:
+Portainer refuses to clone a repository containing symlinks (`repository contains a symlink, which is not allowed for security reasons`), and the upstream source tree contains several. `studio/deploy` holds only `notes/deploy/server/` at the same paths, so the Compose path above is unchanged. It is generated, never edited by hand: the **Studio deploy branch** workflow ([`.github/workflows/studio-deploy-branch.yml`](../../.github/workflows/studio-deploy-branch.yml)) commits the current `notes/deploy/server/` of `studio/release` to it on every push to `studio/release`, and skips the commit when those files did not change.
 
 Reference: [`notes/sandbox/23`](../sandbox/23-portainer-git-mode.md).
 
@@ -143,7 +146,8 @@ required variable POSTGRES_PASSWORD is missing a value: mandatory setting
 | Scenario | Behavior |
 |---|---|
 | Push to `studio/main` | **Does not trigger deployment** |
-| Push to `studio/release` (Documentation only) | Triggers deployment, but **only re-runs flyway and init**; active services experience zero downtime |
+| Push to `studio/release` (No change under `notes/deploy/server/`) | `studio/deploy` is not updated, so **no deployment** |
+| Push to `studio/release` (Other files under `notes/deploy/server/` modified) | Triggers deployment, but **only re-runs flyway and init**; active services experience zero downtime |
 | Push to `studio/release` (YAML modified) | **Recreates only services with altered configurations** (e.g. changing Cuebot CLI flags restarts Cuebot only) |
 | Environment variables altered in Portainer UI | Does not apply automatically; requires clicking **Pull and redeploy**, which **recreates all containers** |
 | Image tag upgrades | **Never happens automatically**. Tags reside in Portainer environment variables and require manual update (see [`04-operations.md`](04-operations.md)) |

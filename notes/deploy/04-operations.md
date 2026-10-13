@@ -6,7 +6,7 @@
 
 ### 1.0 Updating Stack Configuration (Compose YAML)
 
-Production Portainer tracks the `studio/release` branch.
+Production Portainer tracks the `studio/deploy` branch, which a workflow regenerates from `studio/release` on every push ([`01-server.md` Section 3.2](01-server.md#32-create-the-stack-in-portainer)).
 Daily iterative commits are pushed to `studio/main`, **leaving production unaffected**.
 
 Before releasing, open a Pull Request to run CodeRabbit automated review (configured in `.coderabbit.yaml` at repo root, targeting PRs into `studio/release` while excluding `notes/sandbox/`):
@@ -28,7 +28,7 @@ git push origin studio/release
 GitHub recognizes that `studio/release` contains all commits in the PR and automatically marks it as Merged.
 Rationale for avoiding GitHub UI merge buttons: Merge commits, squashes, and rebases inject foreign commits into `studio/release` absent from `studio/main`, preventing future fast-forward merges.
 
-Portainer automatically deploys updates within its polling cycle (5–15 minutes), recreating only services whose definitions have changed.
+The **Studio deploy branch** workflow then updates `studio/deploy`, and Portainer deploys it within its polling cycle (5–15 minutes), recreating only services whose definitions have changed. Do not push to `studio/deploy` directly; the next push to `studio/release` overwrites it.
 
 CodeRabbit integration requires installing its GitHub App and granting access to the repo (process workflow remains in pilot verification).
 
