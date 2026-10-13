@@ -1,0 +1,21 @@
+# 站點專屬設定的範例。複製成 site.yml 後修改，部署時再多疊一層：
+#   docker compose --env-file .env -f opencue.portainer.yml [-f build.yml] -f site.yml up -d
+#
+# 只在「宿主本身解析不到 render node 短名稱」時才需要。
+# 宿主能解析的話，容器會沿用宿主的 search 網域，這個檔案可以不用。
+#
+# Portainer 路線沒辦法疊加檔案，需要時得把這幾段直接貼進 stack 編輯器。
+
+services:
+  cuebot:
+    # 做法一：指定公司 DNS 與網域後綴（節點多時的正解）
+    dns:
+      - 192.168.1.1
+    dns_search:
+      - studio.local
+
+    # 做法二：沒有 DNS 時逐台列出（只適合少量節點）
+    # 會與主檔的 extra_hosts 合併，不是取代。
+    # extra_hosts:
+    #   - "RENDER01:192.168.1.101"
+    #   - "RENDER02:192.168.1.102"

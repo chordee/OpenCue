@@ -1,0 +1,103 @@
+# OpenCue 監控（選用）—— 獨立的 stack，Prometheus + Grafana + PostgreSQL exporter
+#
+# 前提：opencue stack 已經在執行（本 stack 加入它的 opencue network）。
+# 設定檔以 compose 的 inline configs 寫在本檔，Portainer 的 Web editor 與
+# Repository 模式都能直接部署，不需要掛載 repo 裡的檔案（已實測）。
+#
+# 部署後：
+#   - Grafana：http://<伺服器>:3001，帳號 admin
+#   - 儀表板：到 Grafana → Dashboards → Import，上傳 repo 裡的
+#       sandbox/config/grafana/dashboards/PostgreSQL.json
+#       sandbox/config/grafana/dashboards/cuebot.json
+#     Cuebot 儀表板需要 opencue stack 設定 CUEBOT_METRICS_COLLECTOR=true，否則全部空白
+#
+# 說明見 notes/deploy/04-維運.md。
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.9.1
+    container_name: opencue-prometheus
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
+    volumes:
+      - prometheus-data:/prometheus
+    # 刻意不 publish：Prometheus 沒有認證，只給同網路的 Grafana 使用
+    networks: [opencue]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  db-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    container_name: opencue-db-exporter
+    environment:
+      DATA_SOURCE_URI: db:5432/${POSTGRES_DB:-cuebot}?sslmode=disable
+      DATA_SOURCE_USER: ${POSTGRES_USER:-cuebot}
+      # 與 opencue stack 的 POSTGRES_PASSWORD 相同
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD:?必須設定}
+    networks: [opencue]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  grafana:
+    image: grafana/grafana:12.3.5
+    container_name: opencue-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?必須設定}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    configs:
+      - source: grafana_datasource
+        target: /etc/grafana/provisioning/datasources/datasource.yml
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    networks: [opencue]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+configs:
+  prometheus_config:
+    content: |
+      global:
+        scrape_interval: 30s
+      scrape_configs:
+        - job_name: cuebot
+          metrics_path: /metrics
+          static_configs: [{targets: ['cuebot:8080']}]
+        - job_name: db
+          static_configs: [{targets: ['db-exporter:9187']}]
+  grafana_datasource:
+    content: |
+      apiVersion: 1
+      datasources:
+        # 名稱必須是 prometheus，上游儀表板以這個名稱引用
+        - name: prometheus
+          type: prometheus
+          uid: prometheus
+          access: proxy
+          url: http://prometheus:9090
+          isDefault: true
+
+networks:
+  opencue:
+    external: true
+
+volumes:
+  prometheus-data:
+    name: opencue-prometheus-data
+  grafana-data:
+    name: opencue-grafana-data
