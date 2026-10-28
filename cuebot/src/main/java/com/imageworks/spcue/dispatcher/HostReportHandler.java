@@ -32,7 +32,6 @@ import com.imageworks.spcue.Source;
 import com.imageworks.spcue.VirtualProc;
 import com.imageworks.spcue.dao.JobDao;
 import com.imageworks.spcue.dao.LayerDao;
-import com.imageworks.spcue.dao.ShowDao;
 import com.imageworks.spcue.dispatcher.commands.DispatchBookHost;
 import com.imageworks.spcue.dispatcher.commands.DispatchBookHostLocal;
 import com.imageworks.spcue.dispatcher.commands.DispatchHandleHostReport;
@@ -42,7 +41,6 @@ import com.imageworks.spcue.grpc.host.HardwareState;
 import com.imageworks.spcue.grpc.host.LockState;
 import com.imageworks.spcue.grpc.job.FrameState;
 import com.imageworks.spcue.grpc.report.BootReport;
-import com.imageworks.spcue.grpc.report.CoreDetail;
 import com.imageworks.spcue.grpc.report.HostReport;
 import com.imageworks.spcue.grpc.report.RenderHost;
 import com.imageworks.spcue.grpc.report.RunningFrameInfo;
@@ -106,13 +104,6 @@ public class HostReportHandler {
     // so report handling never depends on it.
     @Autowired(required = false)
     private FarmHealth farmHealth;
-
-    // Per-layer rss ledger for the scheduler's core grant; optional so report handling
-    // never depends on it.
-    @Autowired(required = false)
-    private LayerLiveMem layerLiveMem;
-
-    private ShowDao showDao;
 
     // Reconcile idle resources roughly every 10 minutes per host.
     // Host reports arrive ~every 10s, so this fires ~1 in 60 reports.
@@ -187,9 +178,7 @@ public class HostReportHandler {
     public void handleHostReport(HostReport report, boolean isBoot) {
         long startTime = System.currentTimeMillis();
         if (farmHealth != null)
-            farmHealth.record(report.getHost());
-        if (layerLiveMem != null)
-            layerLiveMem.record(report.getFramesList());
+            farmHealth.record(report.getHost(), report.getFramesList());
         try {
             // Record Prometheus metric for host report
             if (prometheusMetrics != null) {
@@ -531,9 +520,9 @@ public class HostReportHandler {
     }
 
     /**
-     * Changes the NIMBY lock state. If the DB indicates a NIMBY lock but RQD does not, then the
-     * host is unlocked. If the DB indicates the host is not locked but RQD indicates it is, the
-     * host is locked.
+     * Mirrors the NIMBY lock state reported by RQD into the DB. If the DB indicates a NIMBY lock
+     * but RQD does not, then the host is unlocked. If the DB indicates the host is not locked but
+     * RQD indicates it is, the host is locked. RQD tracks NIMBY itself, so no RPC is sent back.
      *
      * @param host
      * @param rh
@@ -542,32 +531,13 @@ public class HostReportHandler {
         if (rh.getNimbyLocked()) {
             if (host.lockState.equals(LockState.OPEN)) {
                 host.lockState = LockState.NIMBY_LOCKED;
-                hostManager.setHostLock(host, LockState.NIMBY_LOCKED, new Source("NIMBY"));
+                hostManager.syncHostLock(host, LockState.NIMBY_LOCKED, new Source("NIMBY"));
             }
         } else {
             if (host.lockState.equals(LockState.NIMBY_LOCKED)) {
                 host.lockState = LockState.OPEN;
-                hostManager.setHostLock(host, LockState.OPEN, new Source("NIMBY"));
+                hostManager.syncHostLock(host, LockState.OPEN, new Source("NIMBY"));
             }
-        }
-    }
-
-    /**
-     * Changes the Lock state of the host. Looks at the number of locked cores and sets host to
-     * locked if all cores are locked.
-     *
-     * @param host DispatchHost
-     * @param coreInfo CoreDetail
-     */
-    private void changeLockState(DispatchHost host, CoreDetail coreInfo) {
-        if (host.lockState == LockState.LOCKED) {
-            if (coreInfo.getLockedCores() < coreInfo.getTotalCores()) {
-                host.lockState = LockState.OPEN;
-                hostManager.setHostLock(host, LockState.OPEN, new Source("cores"));
-            }
-        } else if (coreInfo.getLockedCores() >= coreInfo.getTotalCores()) {
-            host.lockState = LockState.LOCKED;
-            hostManager.setHostLock(host, LockState.LOCKED, new Source("cores"));
         }
     }
 
@@ -916,10 +886,8 @@ public class HostReportHandler {
      * @param rFrames
      */
     private void updateMemoryUsageAndLluTime(List<RunningFrameInfo> rFrames) {
-        Map<String, String> showOfLayer = new HashMap<>();
         for (RunningFrameInfo rf : rFrames) {
             FrameInterface frame = jobManager.getFrame(rf.getFrameId());
-            showOfLayer.put(frame.getLayerId(), frame.getShowId());
 
             dispatchSupport.updateFrameMemoryUsageAndLluTime(frame, rf.getRss(), rf.getMaxRss(),
                     rf.getPss(), rf.getMaxPss(), rf.getLluTime());
@@ -931,7 +899,7 @@ public class HostReportHandler {
         }
 
         updateJobMemoryUsage(rFrames);
-        updateLayerMemoryUsage(rFrames, showOfLayer);
+        updateLayerMemoryUsage(rFrames);
     }
 
     /**
@@ -976,8 +944,7 @@ public class HostReportHandler {
      *
      * @param frames
      */
-    private void updateLayerMemoryUsage(List<RunningFrameInfo> frames,
-            Map<String, String> showOfLayer) {
+    private void updateLayerMemoryUsage(List<RunningFrameInfo> frames) {
         final Map<LayerEntity, Long> layers = new HashMap<LayerEntity, Long>(frames.size());
         final Map<LayerEntity, Long> layersPss = new HashMap<LayerEntity, Long>(frames.size());
 
@@ -1002,10 +969,7 @@ public class HostReportHandler {
 
         /* Attempt to update the max RSS value for the layer **/
         for (Map.Entry<LayerEntity, Long> set : layers.entrySet()) {
-            // A managed show's layers are sized by Maestro (LayerLiveMem), not ratcheted here.
-            String showId = showOfLayer.get(set.getKey().getLayerId());
-            if (showId == null || !MaestroMode.schedules(env, showDao, showId))
-                layerDao.increaseLayerMinMemory(set.getKey(), set.getValue());
+            layerDao.increaseLayerMinMemory(set.getKey(), set.getValue());
             layerDao.updateLayerMaxRSS(set.getKey(), set.getValue(), false);
         }
 
@@ -1175,10 +1139,6 @@ public class HostReportHandler {
 
     public void setBookingQueue(BookingQueue bookingQueue) {
         this.bookingQueue = bookingQueue;
-    }
-
-    public void setShowDao(ShowDao showDao) {
-        this.showDao = showDao;
     }
 
     public ThreadPoolExecutor getReportQueue() {

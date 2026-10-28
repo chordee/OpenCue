@@ -124,11 +124,6 @@ public class FrameCompleteHandler {
     private MonitoringEventBuilder monitoringEventBuilder;
     private PrometheusMetricsCollector prometheusMetrics;
 
-    // Per-layer rss ledger for the scheduler's core grant; optional so report handling
-    // never depends on it.
-    @Autowired(required = false)
-    private LayerLiveMem layerLiveMem;
-
     /*
      * The last time a proc was unbooked for subscription or job balancing. Since there are so many
      * more dispatch threads than booking threads, the dispatcher will over compensate and unbook
@@ -262,10 +257,6 @@ public class FrameCompleteHandler {
             throw new RqdRetryReportException("Error processing the frame complete report, "
                     + "cuebot not accepting packets.");
         }
-        if (layerLiveMem != null && ((report.getExitStatus() == 0 && report.getExitSignal() == 0)
-                || isMemoryFailure(report)))
-            layerLiveMem.recordFinished(report.getFrame());
-
         // Who files this report:
         // - Mode off: the legacy path, on this thread. When the
         // completion-forward relay is configured, a managed show's report
@@ -1118,7 +1109,7 @@ public class FrameCompleteHandler {
         }
         if (report.getHost().getNimbyLocked()) {
             logger.info("unbooking " + proc + " was NIMBY locked.");
-            hostManager.setHostLock(proc, LockState.NIMBY_LOCKED, new Source("NIMBY"));
+            hostManager.syncHostLock(proc, LockState.NIMBY_LOCKED, new Source("NIMBY"));
             return ProcHealth.UNBOOK;
         }
         if (report.getHost().getFreeMem() < CueUtil.MB512) {
